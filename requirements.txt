@@ -1,2 +1,4 @@
 aiohttp>=3.9.0
 pyyaml>=6.0
+yt-dlp>=2024.0.0
+pygame>=2.5.0
