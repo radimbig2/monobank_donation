@@ -51,6 +51,13 @@ class WebHost:
         template_path = self._templates_dir / "overlay.html"
         if template_path.exists():
             content = template_path.read_text(encoding="utf-8")
+            # Inject show_test_button config
+            show_test_button = self._config.show_test_button()
+            test_panel_display = "display: block" if show_test_button else "display: none"
+            content = content.replace(
+                '<div id="test-panel">',
+                f'<div id="test-panel" style="{test_panel_display}">'
+            )
             return web.Response(text=content, content_type="text/html")
         return web.Response(text="Overlay template not found", status=404)
 
@@ -169,6 +176,9 @@ class WebHost:
         image_path: str,
         audio_path: str | None = None,
         duration_ms: int | None = None,
+        donor_name: str | None = None,
+        comment: str | None = None,
+        amount: int | None = None,
     ) -> None:
         duration = duration_ms or self._config.get_default_duration()
         message = {
@@ -178,6 +188,12 @@ class WebHost:
         }
         if audio_path:
             message["audio"] = f"/media/{audio_path}"
+        if donor_name:
+            message["donor_name"] = donor_name
+        if comment:
+            message["comment"] = comment
+        if amount is not None:
+            message["amount"] = amount
 
         await self._broadcast(message)
 

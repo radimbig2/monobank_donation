@@ -1,6 +1,7 @@
 server:
   port: 8080
   host: "localhost"
+  show_test_button: true  # Show test donation button in OBS overlay
 
 monobank:
   token: "YOUR_MONOBANK_TOKEN"

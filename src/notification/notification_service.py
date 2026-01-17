@@ -79,12 +79,15 @@ class NotificationService:
             print("[NotificationService] Warning: No media available")
             return
 
-        # Show on web host
+        # Show on web host with donation info
         duration = self._config.get_default_duration()
         await self._web_host.show_media(
             image_path=media.image_path,
             audio_path=media.audio_path,
             duration_ms=duration,
+            donor_name=donation.donor_name,
+            comment=donation.comment,
+            amount=donation.amount,
         )
 
     async def queue_notification(self, donation: Donation) -> None:

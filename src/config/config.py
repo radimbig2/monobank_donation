@@ -16,6 +16,7 @@ class MediaRule:
 class ServerConfig:
     port: int = 8080
     host: str = "localhost"
+    show_test_button: bool = True
 
 
 @dataclass
@@ -58,6 +59,7 @@ class Config:
         self._server = ServerConfig(
             port=server.get("port", 8080),
             host=server.get("host", "localhost"),
+            show_test_button=server.get("show_test_button", True),
         )
 
     def _parse_monobank(self) -> None:
@@ -93,6 +95,9 @@ class Config:
 
     def get_host(self) -> str:
         return self._server.host
+
+    def show_test_button(self) -> bool:
+        return self._server.show_test_button
 
     # Monobank getters
     def get_monobank_token(self) -> str:

@@ -2,6 +2,9 @@
     const mediaContainer = document.getElementById('media-container');
     const mediaImage = document.getElementById('media-image');
     const mediaAudio = document.getElementById('media-audio');
+    const donorNameEl = document.getElementById('donor-name');
+    const donationCommentEl = document.getElementById('donation-comment');
+    const donationAmountEl = document.getElementById('donation-amount');
     const statusEl = document.getElementById('status');
     const testBtn = document.getElementById('test-btn');
 
@@ -74,7 +77,7 @@
                 showImage(data.image, data.duration);
                 break;
             case 'show_media':
-                showMedia(data.image, data.audio, data.duration);
+                showMedia(data.image, data.audio, data.duration, data.donor_name, data.comment, data.amount);
                 break;
             case 'clear':
                 hideMedia();
@@ -88,8 +91,8 @@
         showMedia(imageSrc, null, duration);
     }
 
-    function showMedia(imageSrc, audioSrc, duration) {
-        console.log('[Overlay] showMedia:', { imageSrc, audioSrc, duration });
+    function showMedia(imageSrc, audioSrc, duration, donorName, comment, amount) {
+        console.log('[Overlay] showMedia:', { imageSrc, audioSrc, duration, donorName, comment, amount });
 
         // Clear any pending hide
         if (hideTimeout) {
@@ -100,6 +103,18 @@
         // Set image source
         mediaImage.src = imageSrc;
         console.log('[Overlay] Image src set to:', imageSrc);
+
+        // Set donation info
+        if (donorNameEl) {
+            donorNameEl.textContent = donorName || 'Анонімний донатер';
+        }
+        if (donationCommentEl) {
+            donationCommentEl.textContent = comment || '';
+        }
+        if (donationAmountEl && amount) {
+            const amountUah = (amount / 100).toFixed(2);
+            donationAmountEl.textContent = `${amountUah} ₴`;
+        }
 
         // Show container with animation
         mediaContainer.classList.remove('hidden', 'animate-out');
@@ -143,6 +158,9 @@
             mediaContainer.classList.remove('visible', 'animate-out');
             mediaContainer.classList.add('hidden');
             mediaImage.src = '';
+            if (donorNameEl) donorNameEl.textContent = '';
+            if (donationCommentEl) donationCommentEl.textContent = '';
+            if (donationAmountEl) donationAmountEl.textContent = '';
         }, 300);
     }
 

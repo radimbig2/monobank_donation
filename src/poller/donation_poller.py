@@ -128,20 +128,24 @@ class DonationPoller:
             )
 
             new_donations.append(donation)
-            print(f"[DonationPoller] New donation: {donation}")
 
-            # Queue notification
-            await self._notification.queue_notification(donation)
-
-            # Call callbacks
-            for callback in self._callbacks:
-                try:
-                    callback(donation)
-                except Exception as e:
-                    print(f"[DonationPoller] Callback error: {e}")
+        # Sort by timestamp ascending (old to new)
+        new_donations.sort(key=lambda d: d.timestamp)
 
         if new_donations:
             print(f"[DonationPoller] Found {len(new_donations)} new donation(s)")
+            for donation in new_donations:
+                print(f"[DonationPoller] New donation: {donation}")
+
+                # Queue notification
+                await self._notification.queue_notification(donation)
+
+                # Call callbacks
+                for callback in self._callbacks:
+                    try:
+                        callback(donation)
+                    except Exception as e:
+                        print(f"[DonationPoller] Callback error: {e}")
 
         return new_donations
 
