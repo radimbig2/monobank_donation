@@ -65,17 +65,26 @@ class YouTubePlayer:
         items = self.queue.get_all()
         downloaded = sum(1 for item in items if item.downloaded)
 
+        print(f"[YouTubePlayer] Checking downloads: {len(items)} items, {downloaded} downloaded")
+
         for i, item in enumerate(items):
             if downloaded >= max_downloads:
+                print(f"[YouTubePlayer] Max downloads ({max_downloads}) reached")
                 break
 
             if not item.downloaded:
+                print(f"[YouTubePlayer] Downloading item {i+1}/{len(items)}: {item.title}")
                 video_id = self.parser.extract_video_id(item.url)
                 if video_id:
                     file_path = await self.downloader.download(item.url, video_id)
                     if file_path:
                         self.queue.mark_downloaded(i, str(file_path))
                         downloaded += 1
+                        print(f"[YouTubePlayer] Download complete: {file_path}")
+                    else:
+                        print(f"[YouTubePlayer] Download failed for: {item.title}")
+                else:
+                    print(f"[YouTubePlayer] Could not extract video ID from: {item.url}")
 
     async def start(self) -> None:
         """Start playback loop."""
@@ -83,6 +92,11 @@ class YouTubePlayer:
             return
 
         self._running = True
+
+        # Download existing items in queue
+        print("[YouTubePlayer] Checking queue for items to download...")
+        await self._download_next_items(max_downloads=10)
+
         self._playback_task = asyncio.create_task(self._playback_loop())
         print("[YouTubePlayer] Started")
 
@@ -108,8 +122,13 @@ class YouTubePlayer:
                 if not self.player.is_playing():
                     # Play next item
                     next_item = self.queue.get_next()
-                    if next_item and next_item.downloaded and next_item.file_path:
-                        self.player.play(Path(next_item.file_path))
+                    if next_item:
+                        if next_item.downloaded and next_item.file_path:
+                            print(f"[YouTubePlayer] Playing: {next_item.title}")
+                            self.player.play(Path(next_item.file_path))
+                        else:
+                            print(f"[YouTubePlayer] Waiting for download: {next_item.title} (downloaded={next_item.downloaded}, file={next_item.file_path})")
+                            await asyncio.sleep(1)
                     else:
                         await asyncio.sleep(1)
                 else:
@@ -117,6 +136,8 @@ class YouTubePlayer:
 
             except Exception as e:
                 print(f"[YouTubePlayer] Playback error: {e}")
+                import traceback
+                traceback.print_exc()
                 await asyncio.sleep(1)
 
     def pause(self) -> None:

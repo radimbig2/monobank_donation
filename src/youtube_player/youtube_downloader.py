@@ -19,13 +19,13 @@ class YouTubeDownloader:
         Returns: (title, duration_in_seconds) or None if error
         """
         try:
+            print(f"[YouTubeDownloader] Getting info for: {url}")
             result = await asyncio.to_thread(
                 subprocess.run,
                 [
                     "yt-dlp",
                     "--dump-json",
                     "--no-warnings",
-                    "-e",
                     url
                 ],
                 capture_output=True,
@@ -33,14 +33,22 @@ class YouTubeDownloader:
                 timeout=10
             )
 
-            if result.returncode == 0:
-                import json
-                data = json.loads(result.stdout)
-                title = data.get("title", "Unknown")
-                duration = data.get("duration", 0)
-                return title, duration
+            print(f"[YouTubeDownloader] yt-dlp return code: {result.returncode}")
+
+            if result.returncode != 0:
+                print(f"[YouTubeDownloader] yt-dlp error: {result.stderr}")
+                return None
+
+            import json
+            data = json.loads(result.stdout)
+            title = data.get("title", "Unknown")
+            duration = data.get("duration", 0)
+            print(f"[YouTubeDownloader] Got info: {title} ({duration}s)")
+            return title, duration
         except Exception as e:
             print(f"[YouTubeDownloader] Error getting info: {e}")
+            import traceback
+            traceback.print_exc()
 
         return None
 
