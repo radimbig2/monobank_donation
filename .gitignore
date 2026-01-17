@@ -5,3 +5,4 @@ monobank-library.docs
 __pycache__/
 *.pyc
 .env
+config.yaml
