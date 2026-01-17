@@ -85,10 +85,7 @@ def main():
     # Connect close signal
     app.aboutToQuit.connect(on_close)
 
-    # Show window
-    window.show()
-
-    # Run application
+    # Run application (window already shown in PlayerWindow.__init__)
     sys.exit(app.exec_())
 
 
