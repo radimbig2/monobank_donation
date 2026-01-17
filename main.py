@@ -8,7 +8,14 @@ import sys
 import threading
 from pathlib import Path
 
-from PyQt5.QtWidgets import QApplication
+try:
+    from PyQt5.QtWidgets import QApplication
+    HAS_PYQT5 = True
+except ImportError:
+    HAS_PYQT5 = False
+    print("[Warning] PyQt5 not installed, running in console mode only")
+    print("To enable GUI, run: pip install PyQt5")
+    print()
 
 from src.config import Config
 from src.web_host import WebHost
@@ -18,7 +25,9 @@ from src.monobank import MonobankClient
 from src.poller import DonationPoller
 from src.donations_feed import DonationsFeed
 from src.youtube_player import YouTubePlayer, PlayerUI
-from src.youtube_player.player_window import PlayerWindow
+
+if HAS_PYQT5:
+    from src.youtube_player.player_window import PlayerWindow
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
@@ -223,6 +232,10 @@ def run_async_app():
 
 def run_gui_app():
     """Run GUI application."""
+    if not HAS_PYQT5:
+        print("[GUI] PyQt5 not available, skipping GUI")
+        return
+
     config_path = PROJECT_ROOT / "config.yaml"
     if not config_path.exists():
         print("[Error] config.yaml not found!")
@@ -257,7 +270,10 @@ if __name__ == "__main__":
     print("\nStarting:")
     print("  1. Web server (OBS overlay and feed)")
     print("  2. YouTube player (CLI control)")
-    print("  3. GUI interface (visual controls)")
+    if HAS_PYQT5:
+        print("  3. GUI interface (visual controls)")
+    else:
+        print("  3. (GUI disabled - install PyQt5 to enable)")
     print("\n" + "=" * 60 + "\n")
 
     try:
@@ -269,8 +285,16 @@ if __name__ == "__main__":
         import time
         time.sleep(2)
 
-        # Start GUI application in main thread
-        run_gui_app()
+        # Start GUI application in main thread if available
+        if HAS_PYQT5:
+            run_gui_app()
+        else:
+            # Just keep the async app running
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                pass
 
     except KeyboardInterrupt:
         print("\n\nApplication closed")
