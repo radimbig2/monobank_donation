@@ -1,0 +1,72 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: transparent;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
+
+#overlay-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#media-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s ease-in-out;
+}
+
+#media-container.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#media-container.visible {
+    opacity: 1;
+}
+
+#media-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+}
+
+/* Animation for appearing */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+}
+
+#media-container.animate-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+#media-container.animate-out {
+    animation: fadeOut 0.3s ease-in forwards;
+}

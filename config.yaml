@@ -1,0 +1,26 @@
+server:
+  port: 8080
+  host: "localhost"
+
+monobank:
+  token: "YOUR_MONOBANK_TOKEN"
+  jar_id: "YOUR_JAR_ID"
+  poll_interval: 60
+
+media:
+  path: "./media"
+  default_duration: 5000
+
+  rules:
+    - min: 0
+      max: 4999
+      images: ["video/200.gif"]
+      sounds: ["audio/donat_gitara.mp3"]
+    - min: 5000
+      max: 9999
+      images: ["video/bebra.gif"]
+      sounds: ["audio/donat_gitara.mp3"]
+    - min: 10000
+      max: null
+      images: ["video/a021d7d1c9c83486f22fb3579ff07780.gif"]
+      sounds: ["audio/donat_gitara.mp3"]

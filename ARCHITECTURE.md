@@ -237,19 +237,44 @@ monobank_donation/
 ├── src/
 │   ├── __init__.py
 │   ├── app.py               # Application
-│   ├── config.py            # Config
-│   ├── web_host.py          # WebHost
-│   ├── media_player.py      # MediaPlayer
-│   ├── notification_service.py  # NotificationService
-│   ├── monobank_client.py   # MonobankClient
-│   └── donation_poller.py   # DonationPoller
-├── templates/
-│   └── overlay.html         # HTML для OBS
-├── static/
-│   ├── css/
-│   │   └── overlay.css
-│   └── js/
-│       └── overlay.js       # WebSocket клиент
+│   │
+│   ├── config/
+│   │   ├── __init__.py
+│   │   ├── config.py        # Config класс
+│   │   └── test.py          # Тесты для Config
+│   │
+│   ├── web_host/
+│   │   ├── __init__.py
+│   │   ├── web_host.py      # WebHost класс
+│   │   ├── templates/
+│   │   │   └── overlay.html
+│   │   ├── static/
+│   │   │   ├── css/
+│   │   │   │   └── overlay.css
+│   │   │   └── js/
+│   │   │       └── overlay.js
+│   │   └── test.py          # Тесты для WebHost
+│   │
+│   ├── media_player/
+│   │   ├── __init__.py
+│   │   ├── media_player.py  # MediaPlayer класс
+│   │   └── test.py          # Тесты для MediaPlayer
+│   │
+│   ├── notification/
+│   │   ├── __init__.py
+│   │   ├── notification_service.py
+│   │   └── test.py          # Тесты для NotificationService
+│   │
+│   ├── monobank/
+│   │   ├── __init__.py
+│   │   ├── monobank_client.py
+│   │   └── test.py          # Тесты для MonobankClient
+│   │
+│   └── poller/
+│       ├── __init__.py
+│       ├── donation_poller.py
+│       └── test.py          # Тесты для DonationPoller
+│
 └── media/                   # Картинки и звуки
     ├── video/
     └── audio/
