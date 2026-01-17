@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Any
+import inspect
 
 from src.notification import Donation
 
@@ -27,8 +28,8 @@ class DonationPoller:
         # Track seen transaction IDs to avoid duplicates
         self._seen_tx_ids: set[str] = set()
 
-        # Callbacks for new donations
-        self._callbacks: list[Callable[[Donation], None]] = []
+        # Callbacks for new donations (sync or async)
+        self._callbacks: list[Callable[[Donation], Any]] = []
 
         # Track last poll time
         self._last_poll: datetime | None = None
@@ -145,10 +146,13 @@ class DonationPoller:
                 # Queue notification
                 await self._notification.queue_notification(donation)
 
-                # Call callbacks
+                # Call callbacks (support both sync and async)
                 for callback in self._callbacks:
                     try:
-                        callback(donation)
+                        if inspect.iscoroutinefunction(callback):
+                            await callback(donation)
+                        else:
+                            callback(donation)
                     except Exception as e:
                         print(f"[DonationPoller] Callback error: {e}")
         else:

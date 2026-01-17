@@ -10,6 +10,7 @@ from src.notification import NotificationService
 from src.monobank import MonobankClient
 from src.poller import DonationPoller
 from src.donations_feed import DonationsFeed
+from src.youtube_player import YouTubePlayer, PlayerUI
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
@@ -153,12 +154,25 @@ async def main():
     monobank_client = MonobankClient(config)
     poller = DonationPoller(monobank_client, notification_service, config)
 
+    # Initialize YouTube player
+    youtube_player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
+
     print("[Main] Monobank integration enabled")
+    print("[Main] YouTube player initialized")
+
+    # Callback for new donations - add YouTube tracks to player
+    async def on_donation(donation) -> None:
+        """Handle new donation - check for YouTube link."""
+        if donation.comment:
+            await youtube_player.add_from_comment(donation.comment)
+
+    poller.on_new_donation(on_donation)
 
     # Start services
     await web_host.start_async()
     await notification_service.start()
     await poller.start()
+    await youtube_player.start()
 
     print(f"[Main] Polling for donations every {config.get_poll_interval()} seconds")
     print(f"\nServer running at {web_host.get_url()}")
@@ -171,6 +185,10 @@ async def main():
     # Start input listener for test donations
     start_input_listener(notification_service)
 
+    # Start YouTube player UI
+    player_ui = PlayerUI(youtube_player)
+    player_ui.start()
+
     try:
         # Keep running
         while True:
@@ -182,6 +200,9 @@ async def main():
     await poller.stop()
     await notification_service.stop()
     await web_host.stop_async()
+    await youtube_player.stop()
+    player_ui.stop()
+    youtube_player.cleanup()
 
 
 if __name__ == "__main__":
