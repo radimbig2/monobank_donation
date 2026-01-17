@@ -100,13 +100,18 @@ class DonationPoller:
         """Check for new donations once."""
         # Get recent transactions
         from_time = self._last_poll or (datetime.now() - timedelta(hours=1))
-        self._last_poll = datetime.now()
+        poll_start = datetime.now()
+        self._last_poll = poll_start
+
+        print(f"[DonationPoller] Polling Monobank at {poll_start.strftime('%H:%M:%S')}...")
 
         try:
             transactions = await self._monobank.get_jar_transactions(from_time=from_time)
         except Exception as e:
             print(f"[DonationPoller] Error getting transactions: {e}")
             return []
+
+        print(f"[DonationPoller] Received {len(transactions)} transaction(s) from Monobank")
 
         new_donations = []
 
@@ -133,9 +138,9 @@ class DonationPoller:
         new_donations.sort(key=lambda d: d.timestamp)
 
         if new_donations:
-            print(f"[DonationPoller] Found {len(new_donations)} new donation(s)")
+            print(f"[DonationPoller] Status: CHANGED - Found {len(new_donations)} new donation(s)")
             for donation in new_donations:
-                print(f"[DonationPoller] New donation: {donation}")
+                print(f"[DonationPoller]   > {donation}")
 
                 # Queue notification
                 await self._notification.queue_notification(donation)
@@ -146,6 +151,8 @@ class DonationPoller:
                         callback(donation)
                     except Exception as e:
                         print(f"[DonationPoller] Callback error: {e}")
+        else:
+            print(f"[DonationPoller] Status: No changes")
 
         return new_donations
 
