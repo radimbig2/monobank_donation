@@ -162,22 +162,30 @@ class PlayerWindow(QMainWindow):
 
     def _toggle_play(self) -> None:
         """Toggle play/pause."""
-        if not self.player.is_playing():
+        current = self.player.get_current_track()
+
+        if not current:
             self.signals.update_status.emit("Нет трека в очереди")
             return
 
-        if self.player.player.is_paused():
-            self.player.resume()
-            self.play_pause_btn.setText("⏸ Пауза")
-        else:
-            self.player.pause()
-            self.play_pause_btn.setText("▶ Включить")
+        if not current.downloaded:
+            self.signals.update_status.emit("Трек ещё загружается...")
+            return
+
+        # Toggle pause/play
+        self.player.pause()
+        self.signals.update_status.emit("Пауза включена" if self.player.player.is_paused() else "Воспроизведение")
 
     def _next_track(self) -> None:
         """Skip to next track."""
+        queue = self.player.get_queue()
+        if not queue:
+            self.signals.update_status.emit("Очередь пуста")
+            return
+
         self.player.next_track()
         self.signals.update_queue.emit()
-        self.signals.update_status.emit("Следующий трек")
+        self.signals.update_status.emit("Перешли на следующий трек")
 
     def _on_volume_changed(self, value: int) -> None:
         """Handle volume slider change."""
@@ -228,22 +236,30 @@ class PlayerWindow(QMainWindow):
         """Update queue list display."""
         queue = self.player.get_queue()
 
-        if self.queue_list.count() != len(queue):
-            self.queue_list.clear()
+        # Always update to show latest info
+        self.queue_list.clear()
 
-            for i, item in enumerate(queue):
-                minutes = item.duration_sec // 60
-                seconds = item.duration_sec % 60
-                status = "✓" if item.downloaded else "⏳"
+        for i, item in enumerate(queue):
+            minutes = item.duration_sec // 60
+            seconds = item.duration_sec % 60
 
-                text = f"{i+1}. {status} {item.title[:40]} ({minutes}:{seconds:02d})"
-                widget_item = QListWidgetItem(text)
+            # Format based on status
+            if item.downloaded:
+                status = "✓"
+                progress_str = ""
+            else:
+                status = "⏳"
+                progress = item.download_progress if hasattr(item, 'download_progress') else 0
+                progress_str = f" [{progress}%]" if progress > 0 else ""
 
-                if i == 0:
-                    # Highlight current track
-                    widget_item.setBackground(self.palette().mid())
+            text = f"{i+1}. {status} {item.title[:40]} ({minutes}:{seconds:02d}){progress_str}"
+            widget_item = QListWidgetItem(text)
 
-                self.queue_list.addItem(widget_item)
+            if i == 0:
+                # Highlight current track
+                widget_item.setBackground(self.palette().mid())
+
+            self.queue_list.addItem(widget_item)
 
     def _on_update_current(self, title: str, current_duration: int, total_duration: int) -> None:
         """Handle current track update signal."""

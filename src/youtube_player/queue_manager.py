@@ -14,6 +14,7 @@ class QueueItem:
     added_at: str = field(default_factory=lambda: datetime.now().isoformat())
     file_path: Optional[str] = None  # Local file path after download
     downloaded: bool = False
+    download_progress: int = 0  # 0-100, 0 if not started, 100 if done
 
 
 class QueueManager:
@@ -84,7 +85,27 @@ class QueueManager:
         if 0 <= index < len(self._queue):
             self._queue[index].downloaded = True
             self._queue[index].file_path = file_path
+            self._queue[index].download_progress = 100
             self.save()
+            return True
+        return False
+
+    def update_item_info(self, index: int, title: str = None, duration_sec: int = None) -> bool:
+        """Update item title and duration."""
+        if 0 <= index < len(self._queue):
+            if title:
+                self._queue[index].title = title
+            if duration_sec:
+                self._queue[index].duration_sec = duration_sec
+            self.save()
+            return True
+        return False
+
+    def update_progress(self, index: int, progress: int) -> bool:
+        """Update download progress (0-100)."""
+        if 0 <= index < len(self._queue):
+            self._queue[index].download_progress = max(0, min(100, progress))
+            # Don't save every update (too slow), just update in memory
             return True
         return False
 
