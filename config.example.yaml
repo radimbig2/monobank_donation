@@ -2,6 +2,7 @@ server:
   port: 8080                          # Server port
   host: "localhost"                   # Server host (127.0.0.1 or localhost)
   show_test_button: true              # Show test donation button in OBS overlay
+  player_volume: 0.7                  # YouTube player volume (0.0 to 1.0)
 
 monobank:
   token: "YOUR_MONOBANK_TOKEN"        # Get from https://api.monobank.ua/
