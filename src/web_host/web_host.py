@@ -8,6 +8,7 @@ from aiohttp import web, WSMsgType
 
 if TYPE_CHECKING:
     from src.config import Config
+    from src.notification import NotificationService
 
 
 class WebHost:
@@ -18,10 +19,15 @@ class WebHost:
         self._site: web.TCPSite | None = None
         self._websockets: weakref.WeakSet[web.WebSocketResponse] = weakref.WeakSet()
         self._running = False
+        self._notification_service: "NotificationService | None" = None
 
         self._static_dir = Path(__file__).parent / "static"
         self._templates_dir = Path(__file__).parent / "templates"
         self._project_root = project_root or Path(__file__).parent.parent.parent
+
+    def set_notification_service(self, service: "NotificationService") -> None:
+        """Set notification service for test donations."""
+        self._notification_service = service
 
     def _setup_routes(self, app: web.Application) -> None:
         app.router.add_get("/", self._handle_index)
@@ -52,12 +58,16 @@ class WebHost:
         """Handle test donation button click."""
         print("[WebHost] Test donation requested")
 
-        # Send test media to all connected clients
-        await self.show_media(
-            image_path="video/bebra.gif",
-            audio_path="audio/donat_gitara.mp3",
-            duration_ms=5000
-        )
+        if self._notification_service:
+            # Use notification service (proper flow with MediaPlayer)
+            await self._notification_service.test_donation()
+        else:
+            # Fallback: send test media directly
+            await self.show_media(
+                image_path="video/bebra.gif",
+                audio_path="audio/donat_gitara.mp3",
+                duration_ms=5000
+            )
 
         return web.json_response({"status": "ok", "message": "Test donation sent"})
 
