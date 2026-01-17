@@ -1,13 +1,16 @@
 import asyncio
 import sys
+from pathlib import Path
 
 from src.config import Config
 from src.web_host import WebHost
 
+PROJECT_ROOT = Path(__file__).parent.resolve()
+
 
 async def main():
-    config = Config("config.yaml")
-    web_host = WebHost(config)
+    config = Config(str(PROJECT_ROOT / "config.yaml"))
+    web_host = WebHost(config, project_root=PROJECT_ROOT)
 
     await web_host.start_async()
     print(f"\nServer running at {web_host.get_url()}")

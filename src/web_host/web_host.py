@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class WebHost:
-    def __init__(self, config: "Config"):
+    def __init__(self, config: "Config", project_root: Path | None = None):
         self._config = config
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
@@ -21,15 +21,25 @@ class WebHost:
 
         self._static_dir = Path(__file__).parent / "static"
         self._templates_dir = Path(__file__).parent / "templates"
+        self._project_root = project_root or Path(__file__).parent.parent.parent
 
     def _setup_routes(self, app: web.Application) -> None:
         app.router.add_get("/", self._handle_index)
         app.router.add_get("/ws", self._handle_websocket)
+        app.router.add_post("/test-donation", self._handle_test_donation)
         app.router.add_static("/static", self._static_dir, name="static")
 
-        media_path = Path(self._config.get_media_path()).resolve()
+        # Media path relative to project root
+        media_path = Path(self._config.get_media_path())
+        if not media_path.is_absolute():
+            media_path = self._project_root / media_path
+        media_path = media_path.resolve()
+
+        print(f"[WebHost] Media path: {media_path}")
         if media_path.exists():
             app.router.add_static("/media", media_path, name="media")
+        else:
+            print(f"[WebHost] Warning: Media path does not exist: {media_path}")
 
     async def _handle_index(self, request: web.Request) -> web.Response:
         template_path = self._templates_dir / "overlay.html"
@@ -37,6 +47,19 @@ class WebHost:
             content = template_path.read_text(encoding="utf-8")
             return web.Response(text=content, content_type="text/html")
         return web.Response(text="Overlay template not found", status=404)
+
+    async def _handle_test_donation(self, request: web.Request) -> web.Response:
+        """Handle test donation button click."""
+        print("[WebHost] Test donation requested")
+
+        # Send test media to all connected clients
+        await self.show_media(
+            image_path="video/bebra.gif",
+            audio_path="audio/donat_gitara.mp3",
+            duration_ms=5000
+        )
+
+        return web.json_response({"status": "ok", "message": "Test donation sent"})
 
     async def _handle_websocket(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()

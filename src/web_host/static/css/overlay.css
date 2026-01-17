@@ -70,3 +70,47 @@ body {
 #media-container.animate-out {
     animation: fadeOut 0.3s ease-in forwards;
 }
+
+/* Test Panel - position in corner */
+#test-panel {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 9999;
+}
+
+#test-panel #status {
+    margin-bottom: 8px;
+}
+
+#test-panel #status.connected {
+    color: #4ade80;
+}
+
+#test-panel #status.disconnected {
+    color: #f87171;
+}
+
+#test-panel button {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#test-panel button:hover {
+    background: #2563eb;
+}
+
+#test-panel button:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+}
