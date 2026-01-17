@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import threading
 from pathlib import Path
 
 from src.config import Config
@@ -23,6 +24,30 @@ def has_jar_id(config: Config) -> bool:
     """Check if jar_id is configured."""
     jar_id = config.get_jar_id()
     return jar_id and jar_id != "YOUR_JAR_ID"
+
+
+def start_input_listener(notification_service: "NotificationService") -> None:
+    """
+    Start listening for Enter key in a separate thread.
+    Sends a test donation when Enter is pressed.
+    """
+    loop = asyncio.get_event_loop()
+
+    def listen() -> None:
+        print("[Input] Ready for test donations - press Enter to send")
+        while True:
+            try:
+                input()  # Block until Enter is pressed
+                asyncio.run_coroutine_threadsafe(
+                    notification_service.test_donation(),
+                    loop
+                )
+                print("[Input] Test donation sent")
+            except Exception as e:
+                print(f"[Input] Error: {e}")
+
+    thread = threading.Thread(target=listen, daemon=True)
+    thread.start()
 
 
 async def select_jar_interactive(config: Config) -> bool:
@@ -141,7 +166,10 @@ async def main():
     print(f"  - Overlay (donations with media): {web_host.get_url()}/")
     print(f"  - Donations feed (list): {web_host.get_url()}/feed")
     print("\nAdd any of these URLs as Browser Source in OBS")
-    print("Press Ctrl+C to stop...\n")
+    print("Press Ctrl+C to stop...")
+
+    # Start input listener for test donations
+    start_input_listener(notification_service)
 
     try:
         # Keep running
