@@ -4,6 +4,9 @@ server:
   show_test_button: true              # Show test donation button in OBS overlay
   player_volume: 0.7                  # YouTube player volume (0.0 to 1.0)
 
+youtube:
+  min_donation_for_music: 0           # Minimum donation amount (in UAH) to order music (0 = any amount)
+
 monobank:
   token: "YOUR_MONOBANK_TOKEN"        # Get from https://api.monobank.ua/
   jar_id: "YOUR_JAR_ID"               # Your jar ID (auto-configured on first run)

@@ -34,6 +34,11 @@ class MediaConfig:
     rules: list[MediaRule] = field(default_factory=list)
 
 
+@dataclass
+class YouTubeConfig:
+    min_donation_for_music: int = 0  # Minimum donation amount for music ordering (0 = any amount)
+
+
 class Config:
     def __init__(self, config_path: str = "config.yaml"):
         self._config_path = Path(config_path)
@@ -41,6 +46,7 @@ class Config:
         self._server = ServerConfig()
         self._monobank = MonobankConfig()
         self._media = MediaConfig()
+        self._youtube = YouTubeConfig()
 
         self.reload()
 
@@ -54,6 +60,7 @@ class Config:
         self._parse_server()
         self._parse_monobank()
         self._parse_media()
+        self._parse_youtube()
 
     def _parse_server(self) -> None:
         server = self._raw.get("server", {})
@@ -91,6 +98,12 @@ class Config:
             rules=rules,
         )
 
+    def _parse_youtube(self) -> None:
+        youtube = self._raw.get("youtube", {})
+        self._youtube = YouTubeConfig(
+            min_donation_for_music=youtube.get("min_donation_for_music", 0),
+        )
+
     # Server getters
     def get_port(self) -> int:
         return self._server.port
@@ -124,6 +137,11 @@ class Config:
 
     def get_media_rules(self) -> list[MediaRule]:
         return self._media.rules
+
+    # YouTube getters
+    def get_min_donation_for_music(self) -> int:
+        """Get minimum donation amount to order music."""
+        return self._youtube.min_donation_for_music
 
     # Setters
     def set_jar_id(self, jar_id: str) -> None:

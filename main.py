@@ -185,7 +185,14 @@ async def main(queue_manager: Optional[QueueManager] = None):
 
     # Callback for new donations - add YouTube tracks to player
     async def on_donation(donation) -> None:
-        """Handle new donation - check for YouTube link."""
+        """Handle new donation - check for YouTube link and minimum amount."""
+        min_amount = config.get_min_donation_for_music()
+
+        # Check if donation meets minimum amount for music
+        if donation.amount_uah < min_amount:
+            print(f"[Main] Donation {donation.amount_uah} UAH is below minimum {min_amount} UAH for music")
+            return
+
         if donation.comment:
             await youtube_player.add_from_comment(donation.comment)
 
