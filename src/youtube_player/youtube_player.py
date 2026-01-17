@@ -1,4 +1,6 @@
 import asyncio
+import threading
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -228,22 +230,45 @@ class YouTubePlayer:
         self._auto_play = True  # Enable auto-play when resuming
         return self.player.resume()
 
+    def _delete_file_safely(self, file_path: str) -> None:
+        """Delete file safely in background thread with retries."""
+        def delete_with_retries():
+            path = Path(file_path)
+            max_retries = 5
+            retry_delay = 0.5
+
+            for attempt in range(max_retries):
+                try:
+                    path.unlink()
+                    print(f"[YouTubePlayer] Deleted: {file_path}")
+                    return
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        print(f"[YouTubePlayer] Retry {attempt + 1}/{max_retries} deleting file: {e}")
+                        time.sleep(retry_delay)
+                    else:
+                        print(f"[YouTubePlayer] Failed to delete file after {max_retries} attempts: {e}")
+
+        thread = threading.Thread(target=delete_with_retries, daemon=True)
+        thread.start()
+
     def next_track(self) -> None:
-        """Skip to next track."""
+        """Skip to next track (continues playing if music was playing)."""
         print(f"[YouTubePlayer] Next track called")
-        self.player.stop()
-        self._auto_play = True  # Enable auto-play when skipping to next
+
+        was_playing = self.player.is_playing()
 
         # Remove current item from queue
         item = self.queue.remove(0)
         if item:
             print(f"[YouTubePlayer] Removed from queue: {item.title}")
             if item.file_path:
-                try:
-                    Path(item.file_path).unlink()
-                    print(f"[YouTubePlayer] Deleted: {item.file_path}")
-                except Exception as e:
-                    print(f"[YouTubePlayer] Error deleting file: {e}")
+                # Delete file in background thread (won't block playback)
+                self._delete_file_safely(item.file_path)
+
+        # If music was playing, enable auto-play to continue with next track
+        # If not, just enable auto-play for manual control
+        self._auto_play = True
 
     def set_volume(self, volume: float) -> None:
         """Set volume (0.0 to 1.0)."""
