@@ -11,9 +11,8 @@ from pathlib import Path
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from src.youtube_player import YouTubePlayer, PlayerUI
-from src.youtube_player.player_window import PlayerWindow
-from src.config import Config
+from src.youtube_player import YouTubePlayer
+from src.youtube_player.gui import PlayerWindow
 from src.config import Config
 
 

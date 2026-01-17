@@ -1,0 +1,169 @@
+================================================================================
+                    QUICK START - PLAYBACK FIX
+================================================================================
+
+WHAT TO DO NOW:
+================================================================================
+
+1. Run the app:
+   python player_gui.py
+
+2. When GUI opens:
+   - Look at the queue list
+   - Tracks should show ✓ if downloaded
+   - Tracks show ⏳ if still downloading
+
+3. Click Play button (▶ Включить):
+   - You should hear music
+   - Button should change to "⏸ Пауза"
+   - Progress bar should advance
+   - Console should show detailed logs
+
+4. If music doesn't play:
+   - Check the console for error messages
+   - Run: python test_playback.py
+   - Report the exact error
+
+
+KEY CHANGES MADE:
+================================================================================
+
+1. Play button now has 2 clear states:
+   ✓ "▶ Включить" = Music is OFF, click to start
+   ✓ "⏸ Пауза" = Music is ON, click to pause
+
+2. Fixed playback logic:
+   ✓ Direct play instead of broken resume()
+   ✓ Auto-play works correctly
+   ✓ Debug logging shows what's happening
+
+
+FILES TO CHECK:
+================================================================================
+
+To understand the issue:
+├─ PLAYBACK_FIX.txt        - What was broken and how it's fixed
+├─ DEBUG_PLAYBACK.txt      - How to debug if music still doesn't play
+├─ test_playback.py        - Run this to test everything
+
+To see the changes:
+├─ src/youtube_player/youtube_player.py (pause method)
+├─ src/youtube_player/gui/player_window.py (_toggle_play, _update_display)
+└─ console output (when clicking Play)
+
+
+EXPECTED BEHAVIOR:
+================================================================================
+
+Startup:
+  - 2 tracks in queue
+  - Both showing as "Loading..." (titles updating)
+  - Play button shows "▶ Включить"
+  - No music playing
+
+After clicking Play:
+  - Music starts playing
+  - Play button changes to "⏸ Пауза"
+  - Progress bar advances
+  - Current time updates
+  - Queue shows which track is playing
+
+After clicking Pause:
+  - Music stops
+  - Play button changes back to "▶ Включить"
+  - Progress bar freezes
+  - Status shows "Пауза включена"
+
+After clicking Play again:
+  - Music resumes from where it paused
+  - Button changes to "⏸ Пауза" again
+
+
+TESTING THE FIX:
+================================================================================
+
+Option 1 (Simple):
+  python player_gui.py
+  - Click Play
+  - Listen for music
+  - Report if working or what error you see
+
+Option 2 (Detailed):
+  python test_playback.py
+  - This tests everything systematically
+  - Will tell you exactly what's wrong
+  - Can see AudioPlayer test too
+
+
+TROUBLESHOOTING:
+================================================================================
+
+If music doesn't play after clicking Play:
+
+1. Check queue first:
+   - Are tracks showing ✓ as downloaded?
+   - If ⏳, wait more time for download
+
+2. Check console output:
+   - Look for [AudioPlayer] errors
+   - Example: "File not found: ..."
+
+3. Run debug test:
+   python test_playback.py
+   - This will pinpoint the exact problem
+
+4. Check audio system:
+   - Is system audio working?
+   - Try playing other audio
+   - Check Windows volume is not muted
+
+
+THINGS TO VERIFY:
+================================================================================
+
+[  ] Tracks are downloaded (✓ shown in queue)
+[  ] Play button text changes when clicked
+[  ] Console shows "Playing: <SONG NAME>"
+[  ] You hear audio
+[  ] Progress bar advances
+[  ] Pause button stops the music
+[  ] Next button skips to next track
+
+
+SAMPLE CONSOLE OUTPUT (working):
+================================================================================
+
+[QueueManager] Loaded 1 items from queue
+[AudioPlayer] Volume: 70%
+[GUI] _toggle_play called
+[GUI] Current track: Kinda Like It That Way
+[GUI] Track downloaded: True, file_path: youtube_cache\pvgfto0hNsg.mp3
+[YouTubePlayer] Pause called. Is playing: False
+[YouTubePlayer] Not playing, starting playback...
+[YouTubePlayer] Playing: Kinda Like It That Way
+[AudioPlayer] Playing: pvgfto0hNsg.mp3
+[GUI] Status: Воспроизведение
+
+Result: Music plays, button shows "⏸ Пауза"
+
+
+WHAT IF IT STILL DOESN'T WORK:
+================================================================================
+
+Tell me:
+1. Does test_playback.py pass or fail?
+2. What error messages in console?
+3. Do files exist in youtube_cache/?
+4. What does youtube_queue.json show for file_path?
+
+With this info I can fix it immediately!
+
+
+READY TO TEST:
+================================================================================
+
+Everything is set up and ready.
+
+Next step: python player_gui.py
+
+Then tell me if music plays when you click Play!

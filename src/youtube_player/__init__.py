@@ -6,7 +6,7 @@ from .url_parser import YouTubeURLParser
 from .ui import PlayerUI
 
 try:
-    from .player_window import PlayerWindow
+    from .gui import PlayerWindow
     HAS_GUI = True
 except ImportError:
     HAS_GUI = False

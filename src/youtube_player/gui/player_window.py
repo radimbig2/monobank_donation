@@ -11,8 +11,8 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
 from PyQt5.QtGui import QFont
 
 if TYPE_CHECKING:
-    from .youtube_player import YouTubePlayer
-    from ..config import Config
+    from ..youtube_player import YouTubePlayer
+    from ...config import Config
 
 
 class PlayerSignals(QObject):
@@ -173,19 +173,38 @@ class PlayerWindow(QMainWindow):
 
     def _toggle_play(self) -> None:
         """Toggle play/pause."""
+        # Refresh queue from disk to get latest download status
+        self.player.queue.load()
         current = self.player.get_current_track()
 
+        print(f"[GUI] _toggle_play called")
+        print(f"[GUI] Current track: {current.title if current else 'None'}")
+
         if not current:
+            print(f"[GUI] No current track")
             self.signals.update_status.emit("Нет трека в очереди")
             return
 
+        print(f"[GUI] Track downloaded: {current.downloaded}, file_path: {current.file_path}")
+
         if not current.downloaded:
-            self.signals.update_status.emit("Трек ещё загружается...")
+            print(f"[GUI] Track not downloaded yet")
+            self.signals.update_status.emit("Трек ещё загружається...")
             return
 
         # Toggle pause/play
+        is_playing = self.player.player.is_playing()
+        print(f"[GUI] Is playing before toggle: {is_playing}")
+
         self.player.pause()
-        self.signals.update_status.emit("Пауза включена" if self.player.player.is_paused() else "Воспроизведение")
+
+        is_paused = self.player.player.is_paused()
+        is_playing_after = self.player.player.is_playing()
+        print(f"[GUI] Is paused after: {is_paused}, is_playing after: {is_playing_after}")
+
+        status = "Пауза включена" if is_paused else "Воспроизведение"
+        print(f"[GUI] Status: {status}")
+        self.signals.update_status.emit(status)
 
     def _next_track(self) -> None:
         """Skip to next track."""
@@ -232,11 +251,11 @@ class PlayerWindow(QMainWindow):
             total_sec = current.duration_sec % 60
             self.total_time_label.setText(f"{total_min}:{total_sec:02d}")
 
-            # Update button
-            if self.player.player.is_paused():
-                self.play_pause_btn.setText("▶ Включить")
-            else:
+            # Update button based on playback state
+            if self.player.is_playing():
                 self.play_pause_btn.setText("⏸ Пауза")
+            else:
+                self.play_pause_btn.setText("▶ Включить")
         else:
             self.title_label.setText("Очередь пуста")
             self.progress_bar.setValue(0)
@@ -249,6 +268,8 @@ class PlayerWindow(QMainWindow):
 
     def _update_queue_display(self) -> None:
         """Update queue list display."""
+        # Reload queue from disk to get latest additions from async thread
+        self.player.queue.load()
         queue = self.player.get_queue()
 
         # Always update to show latest info

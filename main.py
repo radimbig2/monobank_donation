@@ -24,10 +24,10 @@ from src.notification import NotificationService
 from src.monobank import MonobankClient
 from src.poller import DonationPoller
 from src.donations_feed import DonationsFeed
-from src.youtube_player import YouTubePlayer, PlayerUI
+from src.youtube_player import YouTubePlayer
 
 if HAS_PYQT5:
-    from src.youtube_player.player_window import PlayerWindow
+    from src.youtube_player.gui import PlayerWindow
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
@@ -241,6 +241,9 @@ def run_gui_app():
         print("[Error] config.yaml not found!")
         return
 
+    # Load config
+    config = Config(str(config_path))
+
     # Create PyQt app
     app = QApplication.instance()
     if app is None:
@@ -249,8 +252,8 @@ def run_gui_app():
     # Create YouTube player (shared with async app)
     player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
 
-    # Create GUI window
-    window = PlayerWindow(player)
+    # Create GUI window with config for volume persistence
+    window = PlayerWindow(player, config=config)
 
     # Run GUI event loop
     try:

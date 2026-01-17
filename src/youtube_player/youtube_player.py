@@ -20,16 +20,22 @@ class YouTubePlayer:
         self._current_index: Optional[int] = 0
         self._running = False
         self._playback_task: Optional[asyncio.Task] = None
+        self._auto_play = False  # Don't auto-play on startup
+        self._was_playing = False  # Track previous playback state
 
     async def add_from_comment(self, comment: str) -> bool:
         """
         Extract URL from comment and add to queue.
         Returns True if added, False otherwise.
         """
+        print(f"[YouTubePlayer] add_from_comment called with: {comment[:100]}")
+
         url = self.parser.extract_url(comment)
         if not url:
             print("[YouTubePlayer] No YouTube URL found in comment")
             return False
+
+        print(f"[YouTubePlayer] Extracted URL: {url}")
 
         # Check if already in queue
         for item in self.queue.get_all():
@@ -38,22 +44,26 @@ class YouTubePlayer:
                 return False
 
         # Check duration
+        print(f"[YouTubePlayer] Checking video length: {url}")
         is_valid = await self.downloader.is_valid_length(url)
         if not is_valid:
             print("[YouTubePlayer] Video is longer than 10 minutes")
             return False
 
         # Get info
+        print(f"[YouTubePlayer] Getting video info...")
         info = await self.downloader.get_info(url)
         if not info:
             print("[YouTubePlayer] Could not get video info")
             return False
 
         title, duration = info
+        print(f"[YouTubePlayer] Got info: {title} ({duration}s)")
 
         # Add to queue
         item = QueueItem(url=url, title=title, duration_sec=duration)
         self.queue.add(item)
+        print(f"[YouTubePlayer] Added to queue: {title}")
 
         # Download if we have space (max 10 in cache)
         await self._download_next_items(max_downloads=10)
@@ -91,7 +101,11 @@ class YouTubePlayer:
                         self.queue.mark_downloaded(i, str(file_path))
                         self.queue.update_progress(i, 100)
                         downloaded += 1
-                        print(f"[YouTubePlayer] Download complete: {file_path}")
+                        print(f"[YouTubePlayer] Download complete at index {i}: {file_path}")
+
+                        # Verify it was saved
+                        current = self.get_current_track()
+                        print(f"[YouTubePlayer] Current track after mark_downloaded: {current.title if current else 'None'}, downloaded={current.downloaded if current else 'N/A'}")
                     else:
                         print(f"[YouTubePlayer] Download failed for: {item.title}")
                         self.queue.update_progress(i, 0)
@@ -115,6 +129,7 @@ class YouTubePlayer:
     async def stop(self) -> None:
         """Stop playback."""
         self._running = False
+        self._auto_play = False  # Disable auto-play when stopping
         self.player.stop()
 
         if self._playback_task:
@@ -131,20 +146,40 @@ class YouTubePlayer:
         """Main playback loop."""
         while self._running:
             try:
-                if not self.player.is_playing():
-                    # Play next item
+                is_playing = self.player.is_playing()
+
+                # Check if playback just finished (was playing, now stopped)
+                if self._was_playing and not is_playing:
+                    # Track finished, auto-play next
+                    print("[YouTubePlayer] Track finished, moving to next...")
                     next_item = self.queue.get_next()
                     if next_item:
                         if next_item.downloaded and next_item.file_path:
                             print(f"[YouTubePlayer] Playing: {next_item.title}")
                             self.player.play(Path(next_item.file_path))
                         else:
-                            print(f"[YouTubePlayer] Waiting for download: {next_item.title} (downloaded={next_item.downloaded}, file={next_item.file_path})")
+                            print(f"[YouTubePlayer] Waiting for download: {next_item.title}")
+                            await asyncio.sleep(1)
+                    else:
+                        await asyncio.sleep(1)
+                elif not is_playing and self._auto_play:
+                    # Auto-play is enabled and nothing is playing
+                    next_item = self.queue.get_next()
+                    if next_item:
+                        if next_item.downloaded and next_item.file_path:
+                            print(f"[YouTubePlayer] Auto-playing: {next_item.title}")
+                            self.player.play(Path(next_item.file_path))
+                        else:
+                            print(f"[YouTubePlayer] Waiting for download: {next_item.title}")
                             await asyncio.sleep(1)
                     else:
                         await asyncio.sleep(1)
                 else:
+                    # Either playing or user paused - just monitor
                     await asyncio.sleep(0.1)
+
+                # Remember playback state for next iteration
+                self._was_playing = is_playing
 
             except Exception as e:
                 print(f"[YouTubePlayer] Playback error: {e}")
@@ -153,27 +188,51 @@ class YouTubePlayer:
                 await asyncio.sleep(1)
 
     def pause(self) -> bool:
-        """Pause playback."""
+        """Toggle play/pause."""
         print(f"[YouTubePlayer] Pause called. Is playing: {self.player.is_playing()}")
         if self.player.is_playing():
+            # Currently playing - pause it
             result = self.player.pause()
-            print(f"[YouTubePlayer] Pause result: {result}")
+            self._auto_play = False  # Stop auto-playing when paused
+            print(f"[YouTubePlayer] Paused. Result: {result}")
             return result
         else:
-            print(f"[YouTubePlayer] Resuming from pause")
-            result = self.player.resume()
-            print(f"[YouTubePlayer] Resume result: {result}")
-            return result
+            # Not playing - check if paused or fresh start
+            print(f"[YouTubePlayer] Not playing. Is paused: {self.player.is_paused()}")
+            self._auto_play = True  # Enable auto-play
+
+            # Get current track and play it
+            current = self.get_current_track()
+            if current and current.downloaded and current.file_path:
+                if self.player.is_paused():
+                    # Was paused - resume from where we left off
+                    print(f"[YouTubePlayer] Resuming: {current.title}")
+                    result = self.player.resume()
+                    print(f"[YouTubePlayer] Resume result: {result}")
+                    return result
+                else:
+                    # Never played - start from beginning
+                    print(f"[YouTubePlayer] Playing: {current.title}")
+                    result = self.player.play(Path(current.file_path))
+                    print(f"[YouTubePlayer] Play result: {result}")
+                    return result
+            else:
+                print(f"[YouTubePlayer] Can't play - track not ready")
+                if current:
+                    print(f"  Downloaded: {current.downloaded}, File: {current.file_path}")
+                return False
 
     def resume(self) -> bool:
         """Resume playback."""
         print(f"[YouTubePlayer] Resume called")
+        self._auto_play = True  # Enable auto-play when resuming
         return self.player.resume()
 
     def next_track(self) -> None:
         """Skip to next track."""
         print(f"[YouTubePlayer] Next track called")
         self.player.stop()
+        self._auto_play = True  # Enable auto-play when skipping to next
 
         # Remove current item from queue
         item = self.queue.remove(0)

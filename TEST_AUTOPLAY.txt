@@ -1,0 +1,185 @@
+================================================================================
+                    HOW TO TEST AUTO-PLAY DISABLE
+================================================================================
+
+QUICK TEST:
+================================================================================
+
+Run the application:
+  python player_gui.py
+
+Expected behavior:
+  1. GUI window opens
+  2. Shows 2 tracks in queue: "Loading..." titles
+  3. Status shows: "Готово" (Ready)
+  4. NO MUSIC PLAYS automatically
+  5. Progress bar at 0%
+  6. Volume slider shows 70%
+
+This is correct! Music should NOT play on startup.
+
+
+USER ACTIONS TO TEST:
+================================================================================
+
+1. CLICK PLAY BUTTON (▶ Включить)
+   Expected:
+   ✓ Button changes to "⏸ Пауза" (pause)
+   ✓ Music starts playing
+   ✓ Progress bar advances
+   ✓ Current time updates
+
+   This shows: Auto-play ENABLED when user clicks Play
+
+
+2. CLICK PAUSE BUTTON (⏸ Пауза)
+   Expected:
+   ✓ Button changes to "▶ Включить" (play)
+   ✓ Music stops
+   ✓ Progress bar freezes
+   ✓ Can resume later
+
+   This shows: Auto-play DISABLED when user pauses
+
+
+3. CLICK NEXT BUTTON (⏭ Следующий)
+   Expected:
+   ✓ Current track stops
+   ✓ Next track plays automatically
+   ✓ Queue list updates
+   ✓ Current time resets to 0:00
+   ✓ Title updates if YouTube info fetched
+
+   This shows: Auto-play ENABLED when skipping
+
+
+4. ADJUST VOLUME SLIDER
+   Expected:
+   ✓ Volume changes immediately
+   ✓ Label updates (e.g., "70%")
+   ✓ Setting persists in config.yaml
+   ✓ Sound level changes
+
+   This tests: Volume persistence
+
+
+DETAILED FLOW:
+================================================================================
+
+Scenario 1: User wants to listen from start
+  1. App launches
+  2. Sees queue with 2 tracks
+  3. Clicks Play
+  4. Track 1 plays
+  5. When Track 1 finishes, Track 2 auto-plays
+  6. When Track 2 finishes, silence (queue empty)
+
+Result: ✓ Expected behavior
+
+
+Scenario 2: User pauses mid-song
+  1. Track playing
+  2. User clicks Pause
+  3. Music stops
+  4. User does something else
+  5. User clicks Play again
+  6. Music resumes from where it paused
+
+Result: ✓ Expected behavior
+
+
+Scenario 3: User skips to next
+  1. Track 1 playing
+  2. User clicks Next
+  3. Track 1 stops, deleted from queue
+  4. Track 2 auto-starts
+  5. Queue now shows only Track 2
+
+Result: ✓ Expected behavior
+
+
+CODE VERIFICATION:
+================================================================================
+
+Check youtube_player.py has:
+  ✓ _auto_play = False in __init__()
+  ✓ _was_playing = False in __init__()
+  ✓ _auto_play set in pause(), resume(), next_track()
+  ✓ _playback_loop() checks _auto_play before playing
+
+These ensure auto-play is disabled on startup.
+
+
+IMPLEMENTATION LOGIC:
+================================================================================
+
+In _playback_loop():
+
+1. If track finished playing:
+   └─ Auto-play NEXT track (regardless of _auto_play flag)
+
+2. If nothing playing AND _auto_play = True:
+   └─ Play next track
+
+3. If nothing playing AND _auto_play = False:
+   └─ Wait (don't play)
+
+4. If paused:
+   └─ Don't play
+
+In pause() method (toggle):
+  - If currently playing: pause, set _auto_play = False
+  - If paused: resume, set _auto_play = True
+
+In next_track() method:
+  - Always set _auto_play = True (skip to next and play)
+
+Result: Gives user full control while keeping natural song flow
+
+
+EXPECTED DIFFERENCES FROM BEFORE:
+================================================================================
+
+BEFORE (Auto-play enabled):
+  1. App starts
+  2. Music immediately plays
+  3. User must click Pause to stop
+  4. Can't "prepare" for music
+
+AFTER (Auto-play disabled):
+  1. App starts
+  2. No music plays
+  3. User clicks Play when ready
+  4. Music flows naturally
+  5. User in full control
+
+This is the intended behavior.
+
+
+TROUBLESHOOTING:
+================================================================================
+
+If music plays on startup:
+  1. Check _auto_play = False in __init__
+  2. Check _playback_loop() logic
+  3. Verify pause() sets flags correctly
+
+If music doesn't play when clicking Play:
+  1. Check AudioPlayer implementation
+  2. Check pygame mixer is initialized
+  3. Check queue has tracks
+
+If auto-progression doesn't work:
+  1. Check _was_playing tracking
+  2. Check _playback_loop() finished-track logic
+  3. Check _auto_play = True in next_track()
+
+
+STATUS: READY FOR TESTING
+================================================================================
+
+The auto-play feature is fully implemented and ready to test.
+
+Run:  python player_gui.py
+
+And verify the expected behaviors above.
