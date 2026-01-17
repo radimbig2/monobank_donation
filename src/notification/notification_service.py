@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from src.web_host import WebHost
     from src.media_player import MediaPlayer
     from src.config import Config
+    from src.donations_feed import DonationsFeed
 
 
 @dataclass
@@ -37,10 +38,15 @@ class NotificationService:
         self._web_host = web_host
         self._media_player = media_player
         self._config = config
+        self._donations_feed: "DonationsFeed | None" = None
 
         self._queue: asyncio.Queue[Donation] = asyncio.Queue()
         self._processing = False
         self._process_task: asyncio.Task | None = None
+
+    def set_donations_feed(self, feed: "DonationsFeed") -> None:
+        """Set donations feed for broadcasting new donations."""
+        self._donations_feed = feed
 
     async def start(self) -> None:
         """Start processing notification queue."""
@@ -71,6 +77,11 @@ class NotificationService:
         Use queue_notification() for queued processing.
         """
         print(f"[NotificationService] Showing notification: {donation}")
+
+        # Add to donations feed
+        if self._donations_feed:
+            self._donations_feed.add_donation(donation)
+            await self._donations_feed.broadcast_new_donation(donation)
 
         # Select media based on amount
         media = self._media_player.select_media(donation.amount)

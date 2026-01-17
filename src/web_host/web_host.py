@@ -9,6 +9,7 @@ from aiohttp import web, WSMsgType
 if TYPE_CHECKING:
     from src.config import Config
     from src.notification import NotificationService
+    from src.donations_feed import DonationsFeed
 
 
 class WebHost:
@@ -20,20 +21,33 @@ class WebHost:
         self._websockets: weakref.WeakSet[web.WebSocketResponse] = weakref.WeakSet()
         self._running = False
         self._notification_service: "NotificationService | None" = None
+        self._donations_feed: "DonationsFeed | None" = None
 
         self._static_dir = Path(__file__).parent / "static"
         self._templates_dir = Path(__file__).parent / "templates"
+        self._feed_static_dir = Path(__file__).parent.parent / "donations_feed" / "static"
+        self._feed_templates_dir = Path(__file__).parent.parent / "donations_feed" / "templates"
         self._project_root = project_root or Path(__file__).parent.parent.parent
 
     def set_notification_service(self, service: "NotificationService") -> None:
         """Set notification service for test donations."""
         self._notification_service = service
 
+    def set_donations_feed(self, feed: "DonationsFeed") -> None:
+        """Set donations feed for real-time updates."""
+        self._donations_feed = feed
+
     def _setup_routes(self, app: web.Application) -> None:
+        # Overlay routes
         app.router.add_get("/", self._handle_index)
         app.router.add_get("/ws", self._handle_websocket)
         app.router.add_post("/test-donation", self._handle_test_donation)
         app.router.add_static("/static", self._static_dir, name="static")
+
+        # Donations feed routes
+        app.router.add_get("/feed", self._handle_feed_index)
+        app.router.add_get("/feed/ws", self._handle_feed_websocket)
+        app.router.add_static("/feed/static", self._feed_static_dir, name="feed_static")
 
         # Media path relative to project root
         media_path = Path(self._config.get_media_path())
@@ -94,6 +108,35 @@ class WebHost:
         finally:
             self._websockets.discard(ws)
             print(f"[WebHost] WebSocket disconnected. Total: {len(self._websockets)}")
+
+        return ws
+
+    async def _handle_feed_index(self, request: web.Request) -> web.Response:
+        """Handle feed page."""
+        template_path = self._feed_templates_dir / "feed.html"
+        if template_path.exists():
+            content = template_path.read_text(encoding="utf-8")
+            return web.Response(text=content, content_type="text/html")
+        return web.Response(text="Feed template not found", status=404)
+
+    async def _handle_feed_websocket(self, request: web.Request) -> web.WebSocketResponse:
+        """Handle feed WebSocket."""
+        if not self._donations_feed:
+            return web.Response(text="Feed not configured", status=500)
+
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        await self._donations_feed.register_websocket(ws)
+
+        try:
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    pass
+                elif msg.type == WSMsgType.ERROR:
+                    print(f"[WebHost] Feed WebSocket error: {ws.exception()}")
+        finally:
+            self._donations_feed.unregister_websocket(ws)
 
         return ws
 

@@ -8,6 +8,7 @@ from src.media_player import MediaPlayer
 from src.notification import NotificationService
 from src.monobank import MonobankClient
 from src.poller import DonationPoller
+from src.donations_feed import DonationsFeed
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
@@ -115,10 +116,13 @@ async def main():
     # Initialize core components
     web_host = WebHost(config, project_root=PROJECT_ROOT)
     media_player = MediaPlayer(config, project_root=PROJECT_ROOT)
+    donations_feed = DonationsFeed(config, max_donations=50)
     notification_service = NotificationService(web_host, media_player, config)
 
-    # Connect notification service to web host for test button
+    # Connect components to each other
     web_host.set_notification_service(notification_service)
+    web_host.set_donations_feed(donations_feed)
+    notification_service.set_donations_feed(donations_feed)
 
     # Initialize monobank components
     monobank_client = MonobankClient(config)
@@ -133,7 +137,10 @@ async def main():
 
     print(f"[Main] Polling for donations every {config.get_poll_interval()} seconds")
     print(f"\nServer running at {web_host.get_url()}")
-    print("Add this URL as Browser Source in OBS")
+    print("\nAvailable URLs:")
+    print(f"  - Overlay (donations with media): {web_host.get_url()}/")
+    print(f"  - Donations feed (list): {web_host.get_url()}/feed")
+    print("\nAdd any of these URLs as Browser Source in OBS")
     print("Press Ctrl+C to stop...\n")
 
     try:
