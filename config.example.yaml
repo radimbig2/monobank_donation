@@ -1,16 +1,17 @@
 server:
-  port: 8080
-  host: "localhost"
-  show_test_button: true  # Show test donation button in OBS overlay
+  port: 8080                          # Server port
+  host: "localhost"                   # Server host (127.0.0.1 or localhost)
+  show_test_button: true              # Show test donation button in OBS overlay
 
 monobank:
-  token: "YOUR_MONOBANK_TOKEN"
-  jar_id: "YOUR_JAR_ID"
-  poll_interval: 60
+  token: "YOUR_MONOBANK_TOKEN"        # Get from https://api.monobank.ua/
+  jar_id: "YOUR_JAR_ID"               # Your jar ID (auto-configured on first run)
+  poll_interval: 60                   # Check for new donations every N seconds
 
 media:
-  path: "./media"
-  default_duration: 5000
+  path: "./media"                     # Path to media folder
+  default_duration: 5000              # How long to show donation (milliseconds)
+                                      # 1000 = 1 second, 5000 = 5 seconds, etc.
 
   rules:
     - min: 0
