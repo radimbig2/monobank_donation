@@ -7,6 +7,7 @@ import asyncio
 import sys
 import threading
 from pathlib import Path
+from typing import Optional
 
 try:
     from PyQt5.QtWidgets import QApplication
@@ -25,11 +26,15 @@ from src.monobank import MonobankClient
 from src.poller import DonationPoller
 from src.donations_feed import DonationsFeed
 from src.youtube_player import YouTubePlayer
+from src.youtube_player.queue_manager import QueueManager
 
 if HAS_PYQT5:
     from src.youtube_player.gui import PlayerWindow
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
+
+# Shared QueueManager instance for both async and GUI apps
+SHARED_QUEUE_MANAGER: Optional[QueueManager] = None
 
 
 def has_token(config: Config) -> bool:
@@ -130,7 +135,7 @@ def start_input_listener(notification_service: "NotificationService") -> None:
     thread.start()
 
 
-async def main():
+async def main(queue_manager: Optional[QueueManager] = None):
     """Main async application."""
     # Initialize config
     config_path = PROJECT_ROOT / "config.yaml"
@@ -172,8 +177,8 @@ async def main():
     monobank_client = MonobankClient(config)
     poller = DonationPoller(monobank_client, notification_service, config)
 
-    # Initialize YouTube player
-    youtube_player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
+    # Initialize YouTube player with shared queue manager
+    youtube_player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"), queue_manager=queue_manager)
 
     print("[Main] Monobank integration enabled")
     print("[Main] YouTube player initialized")
@@ -218,10 +223,10 @@ async def main():
     youtube_player.cleanup()
 
 
-def run_async_app():
+def run_async_app(queue_manager: Optional[QueueManager] = None):
     """Run async application in a thread."""
     try:
-        asyncio.run(main())
+        asyncio.run(main(queue_manager))
     except KeyboardInterrupt:
         pass
     except Exception as e:
@@ -230,7 +235,7 @@ def run_async_app():
         traceback.print_exc()
 
 
-def run_gui_app():
+def run_gui_app(queue_manager: Optional[QueueManager] = None):
     """Run GUI application."""
     if not HAS_PYQT5:
         print("[GUI] PyQt5 not available, skipping GUI")
@@ -249,8 +254,8 @@ def run_gui_app():
     if app is None:
         app = QApplication(sys.argv)
 
-    # Create YouTube player (shared with async app)
-    player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
+    # Create YouTube player with shared queue manager
+    player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"), queue_manager=queue_manager)
 
     # Create GUI window with config for volume persistence
     window = PlayerWindow(player, config=config)
@@ -280,8 +285,11 @@ if __name__ == "__main__":
     print("\n" + "=" * 60 + "\n")
 
     try:
+        # Create shared QueueManager instance
+        queue_manager = QueueManager(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
+
         # Start async application in a separate thread
-        async_thread = threading.Thread(target=run_async_app, daemon=True)
+        async_thread = threading.Thread(target=run_async_app, args=(queue_manager,), daemon=True)
         async_thread.start()
 
         # Give async app time to initialize
@@ -290,7 +298,7 @@ if __name__ == "__main__":
 
         # Start GUI application in main thread if available
         if HAS_PYQT5:
-            run_gui_app()
+            run_gui_app(queue_manager)
         else:
             # Just keep the async app running
             try:

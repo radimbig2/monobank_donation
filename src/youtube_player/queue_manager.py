@@ -25,16 +25,18 @@ class QueueManager:
         self._queue: list[QueueItem] = []
         self.load()
 
-    def load(self) -> None:
+    def load(self, silent: bool = False) -> None:
         """Load queue from file."""
         if self.queue_file.exists():
             try:
                 with open(self.queue_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self._queue = [QueueItem(**item) for item in data]
-                print(f"[QueueManager] Loaded {len(self._queue)} items from queue")
+                if not silent:
+                    print(f"[QueueManager] Loaded {len(self._queue)} items from queue")
             except Exception as e:
-                print(f"[QueueManager] Error loading queue: {e}")
+                if not silent:
+                    print(f"[QueueManager] Error loading queue: {e}")
                 self._queue = []
         else:
             self._queue = []

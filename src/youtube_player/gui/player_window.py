@@ -173,8 +173,6 @@ class PlayerWindow(QMainWindow):
 
     def _toggle_play(self) -> None:
         """Toggle play/pause."""
-        # Refresh queue from disk to get latest download status
-        self.player.queue.load()
         current = self.player.get_current_track()
 
         print(f"[GUI] _toggle_play called")
@@ -268,8 +266,8 @@ class PlayerWindow(QMainWindow):
 
     def _update_queue_display(self) -> None:
         """Update queue list display."""
-        # Reload queue from disk to get latest additions from async thread
-        self.player.queue.load()
+        # Reload queue from disk to get latest additions from async thread (silent to avoid spam)
+        self.player.queue.load(silent=True)
         queue = self.player.get_queue()
 
         # Always update to show latest info

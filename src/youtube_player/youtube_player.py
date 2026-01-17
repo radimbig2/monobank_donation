@@ -11,9 +11,9 @@ from .player import AudioPlayer
 class YouTubePlayer:
     """Main YouTube player managing queue, downloads, and playback."""
 
-    def __init__(self, queue_file: str = "youtube_queue.json"):
+    def __init__(self, queue_file: str = "youtube_queue.json", queue_manager: Optional[QueueManager] = None):
         self.parser = YouTubeURLParser()
-        self.queue = QueueManager(queue_file)
+        self.queue = queue_manager if queue_manager is not None else QueueManager(queue_file)
         self.downloader = YouTubeDownloader()
         self.player = AudioPlayer()
 
