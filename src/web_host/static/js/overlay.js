@@ -11,8 +11,9 @@
     let hideTimeout = null;
     let ws = null;
     let reconnectAttempts = 0;
-    const maxReconnectAttempts = 10;
-    const reconnectDelay = 2000;
+    const baseDelay = 2000;
+    const maxDelay = 30000;
+    let reconnectTimeout = null;
 
     function updateStatus(connected) {
         if (statusEl) {
@@ -32,7 +33,7 @@
         ws = new WebSocket(wsUrl);
 
         ws.onopen = function() {
-            console.log('[Overlay] WebSocket connected');
+            console.log('[Overlay] WebSocket connected successfully');
             reconnectAttempts = 0;
             updateStatus(true);
         };
@@ -60,13 +61,12 @@
     }
 
     function scheduleReconnect() {
-        if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectAttempts++;
-            console.log(`[Overlay] Reconnecting in ${reconnectDelay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
-            setTimeout(connect, reconnectDelay);
-        } else {
-            console.error('[Overlay] Max reconnect attempts reached');
-        }
+        // Calculate exponential backoff, but cap at maxDelay
+        const delay = Math.min(baseDelay * Math.pow(2, reconnectAttempts), maxDelay);
+        reconnectAttempts++;
+        console.log(`[Overlay] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})...`);
+
+        reconnectTimeout = setTimeout(connect, delay);
     }
 
     function handleMessage(data) {
