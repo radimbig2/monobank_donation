@@ -1,7 +1,7 @@
 import sys
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -12,6 +12,7 @@ from PyQt5.QtGui import QFont
 
 if TYPE_CHECKING:
     from .youtube_player import YouTubePlayer
+    from ..config import Config
 
 
 class PlayerSignals(QObject):
@@ -25,9 +26,10 @@ class PlayerSignals(QObject):
 class PlayerWindow(QMainWindow):
     """GUI window for YouTube player."""
 
-    def __init__(self, player: "YouTubePlayer"):
+    def __init__(self, player: "YouTubePlayer", config: Optional["Config"] = None):
         super().__init__()
         self.player = player
+        self.config = config
         self.signals = PlayerSignals()
 
         # Setup UI
@@ -128,11 +130,20 @@ class PlayerWindow(QMainWindow):
         self.volume_slider = QSlider(Qt.Horizontal)
         self.volume_slider.setMinimum(0)
         self.volume_slider.setMaximum(100)
-        self.volume_slider.setValue(int(self.player.player.get_volume() * 100))
-        self.volume_slider.sliderMoved.connect(self._on_volume_changed)
+
+        # Load volume from config or player
+        if self.config:
+            volume = self.config.get_player_volume()
+            self.player.set_volume(volume)
+        else:
+            volume = self.player.player.get_volume()
+
+        self.volume_slider.setValue(int(volume * 100))
+        # Use valueChanged to catch all slider changes (mouse, keyboard, programmatic)
+        self.volume_slider.valueChanged.connect(self._on_volume_changed)
         vol_layout.addWidget(self.volume_slider)
 
-        self.volume_label = QLabel("70%")
+        self.volume_label = QLabel(f"{int(volume * 100)}%")
         self.volume_label.setMinimumWidth(35)
         vol_layout.addWidget(self.volume_label)
 
@@ -192,6 +203,10 @@ class PlayerWindow(QMainWindow):
         volume = value / 100.0
         self.player.set_volume(volume)
         self.volume_label.setText(f"{value}%")
+
+        # Save to config if available
+        if self.config:
+            self.config.set_player_volume(volume)
 
     def _update_display(self) -> None:
         """Update display every 500ms."""

@@ -17,6 +17,7 @@ class ServerConfig:
     port: int = 8080
     host: str = "localhost"
     show_test_button: bool = True
+    player_volume: float = 0.7  # 0.0 to 1.0
 
 
 @dataclass
@@ -60,6 +61,7 @@ class Config:
             port=server.get("port", 8080),
             host=server.get("host", "localhost"),
             show_test_button=server.get("show_test_button", True),
+            player_volume=server.get("player_volume", 0.7),
         )
 
     def _parse_monobank(self) -> None:
@@ -99,6 +101,10 @@ class Config:
     def show_test_button(self) -> bool:
         return self._server.show_test_button
 
+    def get_player_volume(self) -> float:
+        """Get player volume (0.0 to 1.0)."""
+        return self._server.player_volume
+
     # Monobank getters
     def get_monobank_token(self) -> str:
         return self._monobank.token
@@ -128,6 +134,19 @@ class Config:
         if "monobank" not in self._raw:
             self._raw["monobank"] = {}
         self._raw["monobank"]["jar_id"] = jar_id
+
+        # Save to file
+        self._save()
+
+    def set_player_volume(self, volume: float) -> None:
+        """Set player volume and save to config file."""
+        volume = max(0.0, min(1.0, volume))  # Clamp 0.0-1.0
+        self._server.player_volume = volume
+
+        # Update raw config
+        if "server" not in self._raw:
+            self._raw["server"] = {}
+        self._raw["server"]["player_volume"] = volume
 
         # Save to file
         self._save()

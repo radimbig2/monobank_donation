@@ -14,6 +14,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from src.youtube_player import YouTubePlayer, PlayerUI
 from src.youtube_player.player_window import PlayerWindow
 from src.config import Config
+from src.config import Config
 
 
 class PlayerWorker(QThread):
@@ -59,14 +60,17 @@ def main():
         print("Copy config.example.yaml to config.yaml first")
         sys.exit(1)
 
+    # Load config
+    config = Config(str(config_path))
+
     # Create PyQt app
     app = QApplication(sys.argv)
 
     # Create YouTube player
     player = YouTubePlayer(queue_file="youtube_queue.json")
 
-    # Create GUI window
-    window = PlayerWindow(player)
+    # Create GUI window with config
+    window = PlayerWindow(player, config=config)
 
     # Create worker thread for async operations
     worker = PlayerWorker(player)
