@@ -122,9 +122,9 @@ class DonationPoller:
             donation = Donation(
                 amount=tx.amount,
                 currency="UAH",
-                comment=tx.comment,
+                comment=tx.comment or tx.description,
                 timestamp=tx.time,
-                donor_name=None,  # Monobank doesn't provide donor name
+                donor_name=tx.donor_name,
             )
 
             new_donations.append(donation)

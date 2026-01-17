@@ -35,10 +35,23 @@ class JarTransaction:
     amount: int  # in kopecks (positive = incoming)
     description: str
     comment: str | None
+    donor_name: str | None = None
 
     @property
     def amount_uah(self) -> float:
         return self.amount / 100
+
+    @staticmethod
+    def parse_donor_name(description: str) -> str | None:
+        """Extract donor name from description.
+
+        Examples:
+        "Від: Радим Воронянський" -> "Радим Воронянський"
+        "З Білої картки" -> None
+        """
+        if description.startswith("Від: "):
+            return description.replace("Від: ", "").strip()
+        return None
 
 
 class MonobankClient:
@@ -149,13 +162,17 @@ class MonobankClient:
             if amount <= 0:
                 continue
 
+            description = stmt.get("description", "")
+            donor_name = JarTransaction.parse_donor_name(description)
+
             transactions.append(
                 JarTransaction(
                     id=stmt.get("id", ""),
                     time=datetime.fromtimestamp(stmt.get("time", 0)),
                     amount=amount,
-                    description=stmt.get("description", ""),
+                    description=description,
                     comment=stmt.get("comment"),
+                    donor_name=donor_name,
                 )
             )
 

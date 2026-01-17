@@ -37,12 +37,18 @@ def test_dataclasses():
         id="tx123",
         time=datetime.now(),
         amount=5000,
-        description="Donation",
+        description="Від: Тест Користувач",
         comment="Test donation",
     )
 
     assert tx.amount_uah == 50.0
+    assert tx.donor_name == "Тест Користувач"
     print(f"[INFO] JarTransaction: {tx}")
+
+    # Test donor name parsing
+    assert JarTransaction.parse_donor_name("Від: Радим Воронянський") == "Радим Воронянський"
+    assert JarTransaction.parse_donor_name("З Білої картки") is None
+    print("[INFO] Donor name parsing works correctly")
 
     print("[PASS] test_dataclasses")
 
