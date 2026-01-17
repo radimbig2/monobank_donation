@@ -3,15 +3,18 @@ import sys
 from pathlib import Path
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config import Config
 from src.web_host import WebHost
 
+CONFIG_PATH = PROJECT_ROOT / "config.yaml"
+
 
 async def test_server_start_stop():
     """Test that server starts and stops correctly."""
-    config = Config("config.yaml")
+    config = Config(str(CONFIG_PATH))
     web_host = WebHost(config)
 
     assert not web_host.is_running()
@@ -28,7 +31,7 @@ async def test_server_start_stop():
 
 async def test_show_media():
     """Test showing media (requires manual browser check)."""
-    config = Config("config.yaml")
+    config = Config(str(CONFIG_PATH))
     web_host = WebHost(config)
 
     await web_host.start_async()
@@ -61,7 +64,7 @@ async def test_show_media():
 
 async def run_server_interactive():
     """Run server interactively for manual testing."""
-    config = Config("config.yaml")
+    config = Config(str(CONFIG_PATH))
     web_host = WebHost(config)
 
     await web_host.start_async()

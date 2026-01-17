@@ -1,6 +1,13 @@
+import sys
 import tempfile
 from pathlib import Path
-from .config import Config
+
+# Allow running as script or module
+if __name__ == "__main__":
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from src.config.config import Config
+else:
+    from .config import Config
 
 
 def test_default_values():
