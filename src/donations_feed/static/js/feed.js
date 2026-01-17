@@ -1,7 +1,6 @@
 (function() {
     const donationsList = document.getElementById('donations-list');
     const statusIndicator = document.getElementById('status-indicator');
-    const statusText = document.getElementById('status-text');
 
     let ws = null;
     let reconnectAttempts = 0;
@@ -9,12 +8,12 @@
     const reconnectDelay = 2000;
 
     function updateStatus(connected) {
-        if (connected) {
-            statusIndicator.className = 'connected';
-            statusText.textContent = 'Підключено';
-        } else {
-            statusIndicator.className = 'disconnected';
-            statusText.textContent = 'Не підключено';
+        if (statusIndicator) {
+            if (connected) {
+                statusIndicator.className = 'connected';
+            } else {
+                statusIndicator.className = 'disconnected';
+            }
         }
     }
 
