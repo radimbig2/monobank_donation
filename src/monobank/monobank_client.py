@@ -46,8 +46,8 @@ class JarTransaction:
         """Extract donor name from description.
 
         Examples:
-        "Від: Радим Воронянський" -> "Радим Воронянський"
-        "З Білої картки" -> None
+        "From: John Doe" -> "John Doe"
+        "From White Card" -> None
         """
         if description.startswith("Від: "):
             return description.replace("Від: ", "").strip()

@@ -10,14 +10,14 @@ class PlayerUI:
     """Text-based UI for YouTube player."""
 
     COMMANDS = {
-        "p": "Пауза / Включить",
-        "n": "Следующий трек",
-        "v+": "Громче (+10%)",
-        "v-": "Тише (-10%)",
-        "q": "Список в очереди",
-        "c": "Текущий трек",
-        "s": "Выход",
-        "?": "Помощь"
+        "p": "Pause / Play",
+        "n": "Next track",
+        "v+": "Louder (+10%)",
+        "v-": "Quieter (-10%)",
+        "q": "Queue list",
+        "c": "Current track",
+        "s": "Exit",
+        "?": "Help"
     }
 
     def __init__(self, player: "YouTubePlayer"):
@@ -64,33 +64,33 @@ class PlayerUI:
                     self._show_current()
                 elif cmd == "s":
                     self._running = False
-                    print("[Player] Выход...")
+                    print("[Player] Exiting...")
                 elif cmd == "?":
                     self._print_help()
                 else:
-                    print(f"[Player] Неизвестная команда: {cmd}")
+                    print(f"[Player] Unknown command: {cmd}")
 
             except EOFError:
                 break
             except Exception as e:
-                print(f"[Player] Ошибка: {e}")
+                print(f"[Player] Error: {e}")
 
     def _toggle_pause(self) -> None:
         """Toggle pause."""
         if self.player.is_playing():
             if self.player.player.is_paused():
                 self.player.resume()
-                print("[Player] ▶ Включить")
+                print("[Player] ▶ Playing")
             else:
                 self.player.pause()
-                print("[Player] ⏸ Пауза")
+                print("[Player] ⏸ Paused")
         else:
-            print("[Player] Ничего не играет")
+            print("[Player] Nothing is playing")
 
     def _next_track(self) -> None:
         """Skip to next track."""
         self.player.next_track()
-        print("[Player] ⏭ Следующий трек")
+        print("[Player] ⏭ Next track")
 
     def _volume_up(self) -> None:
         """Increase volume."""
@@ -106,11 +106,11 @@ class PlayerUI:
         """Display queue."""
         queue = self.player.get_queue()
         if not queue:
-            print("[Player] Очередь пуста")
+            print("[Player] Queue is empty")
             return
 
         print("\n" + "=" * 60)
-        print("📋 ОЧЕРЕДЬ")
+        print("📋 QUEUE")
         print("=" * 60)
         for i, item in enumerate(queue, 1):
             status = "✓" if item.downloaded else "⏳"
@@ -123,32 +123,32 @@ class PlayerUI:
         """Display current track."""
         current = self.player.get_current_track()
         if not current:
-            print("[Player] Очередь пуста")
+            print("[Player] Queue is empty")
             return
 
-        status = "Играет" if self.player.is_playing() else "Стоп"
+        status = "Playing" if self.player.is_playing() else "Stopped"
         if self.player.player.is_paused():
-            status = "⏸ Пауза"
+            status = "⏸ Paused"
         elif self.player.is_playing():
-            status = "▶ Играет"
+            status = "▶ Playing"
 
         vol = int(self.player.player.get_volume() * 100)
         mins = current.duration_sec // 60
         secs = current.duration_sec % 60
 
         print("\n" + "=" * 60)
-        print("🎵 ТЕКУЩИЙ ТРЕК")
+        print("🎵 CURRENT TRACK")
         print("=" * 60)
-        print(f"Статус: {status}")
-        print(f"Название: {current.title}")
-        print(f"Длительность: {mins}:{secs:02d}")
-        print(f"Громкость: {vol}%")
+        print(f"Status: {status}")
+        print(f"Title: {current.title}")
+        print(f"Duration: {mins}:{secs:02d}")
+        print(f"Volume: {vol}%")
         print(f"URL: {current.url}")
 
     def _print_help(self) -> None:
         """Print help message."""
         print("\n" + "=" * 60)
-        print("📖 КОМАНДЫ")
+        print("📖 COMMANDS")
         print("=" * 60)
         for cmd, desc in self.COMMANDS.items():
             print(f"  {cmd:5s} - {desc}")

@@ -61,7 +61,7 @@ class PlayerWindow(QMainWindow):
         layout.addWidget(self._create_queue_section())
 
         # Status bar
-        self.status_label = QLabel("Готово")
+        self.status_label = QLabel("Ready")
         self.status_label.setStyleSheet("color: #666; font-size: 11px;")
         layout.addWidget(self.status_label)
 
@@ -78,7 +78,7 @@ class PlayerWindow(QMainWindow):
         layout = QVBoxLayout(widget)
 
         # Title
-        self.title_label = QLabel("Нет трека")
+        self.title_label = QLabel("No track")
         font = QFont()
         font.setPointSize(14)
         font.setBold(True)
@@ -111,12 +111,12 @@ class PlayerWindow(QMainWindow):
         # Playback buttons
         btn_layout = QHBoxLayout()
 
-        self.play_pause_btn = QPushButton("▶ Включить")
+        self.play_pause_btn = QPushButton("▶ Play")
         self.play_pause_btn.clicked.connect(self._toggle_play)
         self.play_pause_btn.setMinimumHeight(40)
         btn_layout.addWidget(self.play_pause_btn)
 
-        self.next_btn = QPushButton("⏭ Следующий")
+        self.next_btn = QPushButton("⏭ Next")
         self.next_btn.clicked.connect(self._next_track)
         self.next_btn.setMinimumHeight(40)
         btn_layout.addWidget(self.next_btn)
@@ -157,7 +157,7 @@ class PlayerWindow(QMainWindow):
         layout = QVBoxLayout(widget)
 
         # Title
-        queue_title = QLabel("📋 Очередь")
+        queue_title = QLabel("📋 Queue")
         font = QFont()
         font.setPointSize(11)
         font.setBold(True)
@@ -182,14 +182,14 @@ class PlayerWindow(QMainWindow):
 
         if not current:
             print(f"[GUI] No current track")
-            self.signals.update_status.emit("Нет трека в очереди")
+            self.signals.update_status.emit("No track in queue")
             return
 
         print(f"[GUI] Track downloaded: {current.downloaded}, file_path: {current.file_path}")
 
         if not current.downloaded:
             print(f"[GUI] Track not downloaded yet")
-            self.signals.update_status.emit("Трек ещё загружається...")
+            self.signals.update_status.emit("Track is still downloading...")
             return
 
         # Toggle pause/play
@@ -202,7 +202,7 @@ class PlayerWindow(QMainWindow):
         is_playing_after = self.player.player.is_playing()
         print(f"[GUI] Is paused after: {is_paused}, is_playing after: {is_playing_after}")
 
-        status = "Пауза включена" if is_paused else "Воспроизведение"
+        status = "Paused" if is_paused else "Playing"
         print(f"[GUI] Status: {status}")
         self.signals.update_status.emit(status)
 
@@ -210,12 +210,12 @@ class PlayerWindow(QMainWindow):
         """Skip to next track."""
         queue = self.player.get_queue()
         if not queue:
-            self.signals.update_status.emit("Очередь пуста")
+            self.signals.update_status.emit("Queue is empty")
             return
 
         self.player.next_track()
         self.signals.update_queue.emit()
-        self.signals.update_status.emit("Перешли на следующий трек")
+        self.signals.update_status.emit("Moved to next track")
 
     def _on_volume_changed(self, value: int) -> None:
         """Handle volume slider change."""
@@ -253,15 +253,15 @@ class PlayerWindow(QMainWindow):
 
             # Update button based on playback state
             if self.player.is_playing():
-                self.play_pause_btn.setText("⏸ Пауза")
+                self.play_pause_btn.setText("⏸ Pause")
             else:
-                self.play_pause_btn.setText("▶ Включить")
+                self.play_pause_btn.setText("▶ Play")
         else:
-            self.title_label.setText("Очередь пуста")
+            self.title_label.setText("Queue is empty")
             self.progress_bar.setValue(0)
             self.current_time_label.setText("0:00")
             self.total_time_label.setText("0:00")
-            self.play_pause_btn.setText("▶ Включить")
+            self.play_pause_btn.setText("▶ Play")
 
         # Update queue display
         self._update_queue_display()

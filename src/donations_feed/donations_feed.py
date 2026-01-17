@@ -83,7 +83,7 @@ class DonationsFeed:
     def _donation_to_dict(donation: "Donation") -> dict:
         """Convert donation object to dictionary for JSON serialization."""
         return {
-            "donor_name": donation.donor_name or "Анонімний",
+            "donor_name": donation.donor_name or "Anonymous",
             "amount": donation.amount / 100,  # Convert to UAH
             "comment": donation.comment or "",
             "timestamp": int(donation.timestamp.timestamp()),
