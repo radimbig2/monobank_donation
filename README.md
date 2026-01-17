@@ -2,6 +2,25 @@
 
 A comprehensive donation tracking system for streamers that integrates with Monobank, displays donations in OBS overlays, and includes a built-in YouTube music player.
 
+## 📑 Quick Navigation
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Getting Started](#-getting-started)
+- [Configuration](#️-configuration-guide)
+- [OBS Setup](#-obs-setup)
+- [Command Line Usage](#-command-line-usage)
+- [Project Architecture](#️-project-architecture)
+- [Documentation](#-documentation)
+- [Development](#-development)
+- [Troubleshooting](#-troubleshooting)
+- [Monitoring](#-monitoring)
+- [Support](#-support)
+
+---
+
 ## 🎯 Overview
 
 This application tracks donations from your Monobank account in real-time, displays them on stream via OBS browser sources, plays music from YouTube links mentioned in donation comments, and provides both a web interface and a GUI application for complete control.
@@ -455,7 +474,16 @@ For best compatibility:
 
 ---
 
-## 📚 Additional Resources
+## 📚 Documentation
+
+For detailed technical documentation, see:
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete technical architecture, data flow, design patterns, and system overview
+- **[CLASS_REFERENCE.md](CLASS_REFERENCE.md)** - Comprehensive reference for all 20+ classes with fields, methods, and descriptions
+
+---
+
+## 🔗 Additional Resources
 
 - **Monobank API Docs:** https://api.monobank.ua/
 - **yt-dlp Documentation:** https://github.com/yt-dlp/yt-dlp
@@ -509,6 +537,18 @@ Update `server.port` in `config.yaml`
 
 **Configure donation amounts:**
 Edit `media.rules` in `config.yaml` with min/max amounts in kopecks.
+
+---
+
+## 🚀 Quick Links
+
+| What are you looking for? | Go to |
+|---------------------------|-------|
+| 📖 Full system architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| 📚 API class reference | [CLASS_REFERENCE.md](CLASS_REFERENCE.md) |
+| ⚙️ Configuration examples | [Installation section](#-installation) |
+| 🎮 How to use | [Getting Started section](#-getting-started) |
+| 🐛 Something not working? | [Troubleshooting section](#-troubleshooting) |
 
 ---
 
