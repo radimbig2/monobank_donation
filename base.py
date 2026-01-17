@@ -1,14 +1,7 @@
-#!/usr/bin/env python3
-"""
-Main application - runs both CLI console and GUI simultaneously.
-"""
-
 import asyncio
 import sys
 import threading
 from pathlib import Path
-
-from PyQt5.QtWidgets import QApplication
 
 from src.config import Config
 from src.web_host import WebHost
@@ -18,7 +11,6 @@ from src.monobank import MonobankClient
 from src.poller import DonationPoller
 from src.donations_feed import DonationsFeed
 from src.youtube_player import YouTubePlayer, PlayerUI
-from src.youtube_player.player_window import PlayerWindow
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
@@ -33,6 +25,30 @@ def has_jar_id(config: Config) -> bool:
     """Check if jar_id is configured."""
     jar_id = config.get_jar_id()
     return jar_id and jar_id != "YOUR_JAR_ID"
+
+
+def start_input_listener(notification_service: "NotificationService") -> None:
+    """
+    Start listening for Enter key in a separate thread.
+    Sends a test donation when Enter is pressed.
+    """
+    loop = asyncio.get_event_loop()
+
+    def listen() -> None:
+        print("[Input] Ready for test donations - press Enter to send")
+        while True:
+            try:
+                input()  # Block until Enter is pressed
+                asyncio.run_coroutine_threadsafe(
+                    notification_service.test_donation(),
+                    loop
+                )
+                print("[Input] Test donation sent")
+            except Exception as e:
+                print(f"[Input] Error: {e}")
+
+    thread = threading.Thread(target=listen, daemon=True)
+    thread.start()
 
 
 async def select_jar_interactive(config: Config) -> bool:
@@ -97,32 +113,7 @@ async def select_jar_interactive(config: Config) -> bool:
         return False
 
 
-def start_input_listener(notification_service: "NotificationService") -> None:
-    """
-    Start listening for Enter key in a separate thread.
-    Sends a test donation when Enter is pressed.
-    """
-    loop = asyncio.get_event_loop()
-
-    def listen() -> None:
-        print("[Input] Ready for test donations - press Enter to send")
-        while True:
-            try:
-                input()  # Block until Enter is pressed
-                asyncio.run_coroutine_threadsafe(
-                    notification_service.test_donation(),
-                    loop
-                )
-                print("[Input] Test donation sent")
-            except Exception as e:
-                print(f"[Input] Error: {e}")
-
-    thread = threading.Thread(target=listen, daemon=True)
-    thread.start()
-
-
 async def main():
-    """Main async application."""
     # Initialize config
     config_path = PROJECT_ROOT / "config.yaml"
 
@@ -194,6 +185,10 @@ async def main():
     # Start input listener for test donations
     start_input_listener(notification_service)
 
+    # Start YouTube player UI
+    player_ui = PlayerUI(youtube_player)
+    player_ui.start()
+
     try:
         # Keep running
         while True:
@@ -206,75 +201,9 @@ async def main():
     await notification_service.stop()
     await web_host.stop_async()
     await youtube_player.stop()
+    player_ui.stop()
     youtube_player.cleanup()
 
 
-def run_async_app():
-    """Run async application in a thread."""
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
-    except Exception as e:
-        print(f"[Error] {e}")
-        import traceback
-        traceback.print_exc()
-
-
-def run_gui_app():
-    """Run GUI application."""
-    config_path = PROJECT_ROOT / "config.yaml"
-    if not config_path.exists():
-        print("[Error] config.yaml not found!")
-        return
-
-    # Create PyQt app
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-
-    # Create YouTube player (shared with async app)
-    player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
-
-    # Create GUI window
-    window = PlayerWindow(player)
-
-    # Run GUI event loop
-    try:
-        app.exec_()
-    except Exception as e:
-        print(f"[GUI Error] {e}")
-        import traceback
-        traceback.print_exc()
-    finally:
-        player.cleanup()
-
-
 if __name__ == "__main__":
-    print("\n" + "=" * 60)
-    print("🎵 Monobank Donation Tracker - Full Application")
-    print("=" * 60)
-    print("\nStarting:")
-    print("  1. Web server (OBS overlay and feed)")
-    print("  2. YouTube player (CLI control)")
-    print("  3. GUI interface (visual controls)")
-    print("\n" + "=" * 60 + "\n")
-
-    try:
-        # Start async application in a separate thread
-        async_thread = threading.Thread(target=run_async_app, daemon=True)
-        async_thread.start()
-
-        # Give async app time to initialize
-        import time
-        time.sleep(2)
-
-        # Start GUI application in main thread
-        run_gui_app()
-
-    except KeyboardInterrupt:
-        print("\n\nApplication closed")
-    except Exception as e:
-        print(f"\n[Error] {e}")
-        import traceback
-        traceback.print_exc()
+    asyncio.run(main())
