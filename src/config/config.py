@@ -113,3 +113,21 @@ class Config:
 
     def get_media_rules(self) -> list[MediaRule]:
         return self._media.rules
+
+    # Setters
+    def set_jar_id(self, jar_id: str) -> None:
+        """Set jar_id and save to config file."""
+        self._monobank.jar_id = jar_id
+
+        # Update raw config
+        if "monobank" not in self._raw:
+            self._raw["monobank"] = {}
+        self._raw["monobank"]["jar_id"] = jar_id
+
+        # Save to file
+        self._save()
+
+    def _save(self) -> None:
+        """Save config to file."""
+        with open(self._config_path, "w", encoding="utf-8") as f:
+            yaml.dump(self._raw, f, default_flow_style=False, allow_unicode=True)
