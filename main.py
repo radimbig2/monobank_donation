@@ -45,10 +45,9 @@ async def select_jar_interactive(config: Config) -> bool:
 
         print("Available jars:\n")
         for i, jar in enumerate(jars, 1):
-            balance_uah = jar.balance / 100
-            goal_str = f" / {jar.goal / 100:.2f}" if jar.goal else ""
+            goal_str = f" / {jar.goal_uah:.2f}" if jar.goal_uah else ""
             print(f"  {i}. {jar.title}")
-            print(f"     Balance: {balance_uah:.2f}{goal_str} UAH")
+            print(f"     Balance: {jar.balance_uah:.2f}{goal_str} UAH")
             print(f"     ID: {jar.id}")
             if jar.description:
                 print(f"     Description: {jar.description}")
