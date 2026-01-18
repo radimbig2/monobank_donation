@@ -239,6 +239,9 @@ async def main(queue_manager: Optional[QueueManager] = None):
     # Initialize YouTube player with shared queue manager
     youtube_player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"), queue_manager=queue_manager)
 
+    # Connect YouTube player to notification service for processing donation comments
+    notification_service.set_youtube_player(youtube_player)
+
     print("[Main] Monobank integration enabled")
     print("[Main] YouTube player initialized")
 

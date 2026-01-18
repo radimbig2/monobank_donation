@@ -29,89 +29,6 @@ def has_jar_id(config: Config) -> bool:
     return jar_id and jar_id != "YOUR_JAR_ID"
 
 
-def start_input_listener(notification_service: "NotificationService") -> None:
-    """
-    Start listening for /test command in a separate thread.
-    Formats:
-      /test name                  -> name, text="test", amount=100 UAH
-      /test name text             -> name, text, amount=100 UAH
-      /test name text amount      -> name, text, amount UAH
-    Examples:
-      /test Alice
-      /test Bob "YouTube link"
-      /test Charlie "https://youtu.be/xyz" 50
-    """
-    loop = asyncio.get_event_loop()
-
-    def listen() -> None:
-        print("[Input] Ready for test donations")
-        print("[Input] /test name                    (name, text='test', 100 UAH)")
-        print("[Input] /test name text               (name, text, 100 UAH)")
-        print("[Input] /test name text amount        (name, text, amount UAH)")
-        print("[Input] Example: /test Alice \"YouTube link\" 50")
-        while True:
-            try:
-                user_input = input().strip()
-
-                if not user_input:
-                    continue
-
-                if user_input.startswith("/test"):
-                    # Parse /test command with flexible arguments
-                    parts = user_input.split(maxsplit=1)
-                    if len(parts) < 2:
-                        print("[Input] Error: /test requires at least a name")
-                        continue
-
-                    # Remove /test and get remaining arguments
-                    remaining = parts[1].strip()
-
-                    # Split by spaces, but respect quoted strings
-                    import shlex
-                    try:
-                        args = shlex.split(remaining)
-                    except ValueError:
-                        print("[Input] Error: invalid quotes in command")
-                        continue
-
-                    # Parse arguments with defaults
-                    if len(args) < 1:
-                        print("[Input] Error: /test requires at least a name")
-                        continue
-
-                    donor_name = args[0]
-                    text = args[1] if len(args) > 1 else "test"
-                    amount_uah = 100  # Default 100 UAH
-
-                    # Try to parse amount if present
-                    if len(args) > 2:
-                        try:
-                            amount_uah = float(args[2])
-                        except ValueError:
-                            print(f"[Input] Error: invalid amount '{args[2]}'. Expected number.")
-                            continue
-
-                    amount_kop = int(amount_uah * 100)
-
-                    asyncio.run_coroutine_threadsafe(
-                        notification_service.test_donation(
-                            amount=amount_kop,
-                            donor_name=donor_name,
-                            comment=text
-                        ),
-                        loop
-                    )
-                    print(f"[Input] Test donation: {donor_name} - {amount_uah:.2f} UAH - {text}")
-                else:
-                    print("[Input] Unknown command. Use: /test name [text] [amount]")
-
-            except Exception as e:
-                print(f"[Input] Error: {e}")
-
-    thread = threading.Thread(target=listen, daemon=True)
-    thread.start()
-
-
 async def select_jar_interactive(config: Config) -> bool:
     """
     Interactive jar selection.
@@ -219,6 +136,9 @@ async def main():
     queue_manager = QueueManager(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
     youtube_player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"), queue_manager=queue_manager)
 
+    # Connect YouTube player to notification service for processing donation comments
+    notification_service.set_youtube_player(youtube_player)
+
     print("[Main] Monobank integration enabled")
     print("[Main] YouTube player initialized")
 
@@ -251,11 +171,11 @@ async def main():
     print("\nAdd any of these URLs as Browser Source in OBS")
     print("Press Ctrl+C to stop...")
 
-    # Start input listener for test donations
-    start_input_listener(notification_service)
+    # Get main event loop for PlayerUI
+    main_loop = asyncio.get_running_loop()
 
-    # Start YouTube player UI
-    player_ui = PlayerUI(youtube_player)
+    # Start YouTube player UI (handles both player commands and /test donations)
+    player_ui = PlayerUI(youtube_player, notification_service, event_loop=main_loop)
     player_ui.start()
 
     try:

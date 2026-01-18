@@ -8,6 +8,7 @@ if TYPE_CHECKING:
     from src.media_player import MediaPlayer
     from src.config import Config
     from src.donations_feed import DonationsFeed
+    from src.youtube_player import YouTubePlayer
 
 
 @dataclass
@@ -39,6 +40,7 @@ class NotificationService:
         self._media_player = media_player
         self._config = config
         self._donations_feed: "DonationsFeed | None" = None
+        self._youtube_player: "YouTubePlayer | None" = None
 
         self._queue: asyncio.Queue[Donation] = asyncio.Queue()
         self._processing = False
@@ -47,6 +49,10 @@ class NotificationService:
     def set_donations_feed(self, feed: "DonationsFeed") -> None:
         """Set donations feed for broadcasting new donations."""
         self._donations_feed = feed
+
+    def set_youtube_player(self, player: "YouTubePlayer") -> None:
+        """Set YouTube player for adding tracks from donations."""
+        self._youtube_player = player
 
     async def start(self) -> None:
         """Start processing notification queue."""
@@ -82,6 +88,28 @@ class NotificationService:
         if self._donations_feed:
             self._donations_feed.add_donation(donation)
             await self._donations_feed.broadcast_new_donation(donation)
+
+        # Check for YouTube links in donation comment
+        print(f"[NotificationService] YouTube player set: {self._youtube_player is not None}")
+        print(f"[NotificationService] Comment: {donation.comment}")
+
+        if self._youtube_player and donation.comment:
+            print(f"[NotificationService] Checking for YouTube link in: {donation.comment[:80]}")
+            try:
+                result = await self._youtube_player.add_from_comment(donation.comment)
+                if result:
+                    print(f"[NotificationService] Added YouTube track from donation comment")
+                else:
+                    print(f"[NotificationService] No YouTube URL found in comment")
+            except Exception as e:
+                print(f"[NotificationService] Error adding YouTube track: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            if not self._youtube_player:
+                print(f"[NotificationService] WARNING: YouTube player not set!")
+            if not donation.comment:
+                print(f"[NotificationService] No comment in donation")
 
         # Select media based on amount
         media = self._media_player.select_media(donation.amount)

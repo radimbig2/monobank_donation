@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "url": "https://www.youtube.com/watch?v=pvgfto0hNsg",
+    "title": "Kinda Like It That Way",
+    "duration_sec": 172,
+    "added_at": "2026-01-18T12:48:13.023024",
+    "file_path": "youtube_cache\\pvgfto0hNsg.mp3",
+    "downloaded": true,
+    "download_progress": 100
+  }
+]
