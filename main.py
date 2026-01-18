@@ -113,21 +113,50 @@ async def select_jar_interactive(config: Config) -> bool:
 
 def start_input_listener(notification_service: "NotificationService") -> None:
     """
-    Start listening for Enter key in a separate thread.
-    Sends a test donation when Enter is pressed.
+    Start listening for /test command in a separate thread.
+    Format: /test donor_name text amount_in_uah
+    Example: /test "John Doe" "YouTube link" 50
     """
     loop = asyncio.get_event_loop()
 
     def listen() -> None:
-        print("[Input] Ready for test donations - press Enter to send")
+        print("[Input] Ready for test donations")
+        print("[Input] Format: /test donor_name text amount_in_uah")
+        print("[Input] Example: /test \"John Doe\" \"https://youtu.be/xyz\" 50")
         while True:
             try:
-                input()  # Block until Enter is pressed
-                asyncio.run_coroutine_threadsafe(
-                    notification_service.test_donation(),
-                    loop
-                )
-                print("[Input] Test donation sent")
+                user_input = input().strip()
+
+                if not user_input:
+                    continue
+
+                if user_input.startswith("/test"):
+                    # Parse /test command
+                    parts = user_input.split(maxsplit=4)
+                    if len(parts) < 4:
+                        print("[Input] Error: format is /test donor_name text amount_in_uah")
+                        continue
+
+                    try:
+                        donor_name = parts[1]
+                        text = parts[2]
+                        amount_uah = float(parts[3])
+                        amount_kop = int(amount_uah * 100)
+
+                        asyncio.run_coroutine_threadsafe(
+                            notification_service.test_donation(
+                                amount=amount_kop,
+                                donor_name=donor_name,
+                                comment=text
+                            ),
+                            loop
+                        )
+                        print(f"[Input] Test donation sent: {donor_name} - {amount_uah:.2f} UAH - {text}")
+                    except ValueError as e:
+                        print(f"[Input] Error: invalid amount. Expected number, got: {parts[3]}")
+                else:
+                    print("[Input] Unknown command. Use: /test donor_name text amount_in_uah")
+
             except Exception as e:
                 print(f"[Input] Error: {e}")
 

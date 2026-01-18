@@ -130,7 +130,12 @@ class NotificationService:
             except Exception as e:
                 print(f"[NotificationService] Error processing queue: {e}")
 
-    async def test_donation(self, amount: int = 10000) -> None:
+    async def test_donation(
+        self,
+        amount: int = 10000,
+        donor_name: str = "Test User",
+        comment: str = "Test donation"
+    ) -> None:
         """
         Send test donation.
         Amount in kopecks (default 100 UAH = 10000 kopecks).
@@ -138,8 +143,8 @@ class NotificationService:
         donation = Donation(
             amount=amount,
             currency="UAH",
-            comment="Test donation",
-            donor_name="Test User",
+            comment=comment,
+            donor_name=donor_name,
         )
         await self.notify(donation)
 
