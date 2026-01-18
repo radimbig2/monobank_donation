@@ -2,6 +2,7 @@ import asyncio
 import sys
 import threading
 from pathlib import Path
+from typing import Optional
 
 from src.config import Config
 from src.web_host import WebHost
@@ -11,6 +12,7 @@ from src.monobank import MonobankClient
 from src.poller import DonationPoller
 from src.donations_feed import DonationsFeed
 from src.youtube_player import YouTubePlayer, PlayerUI
+from src.youtube_player.queue_manager import QueueManager
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 
@@ -29,21 +31,80 @@ def has_jar_id(config: Config) -> bool:
 
 def start_input_listener(notification_service: "NotificationService") -> None:
     """
-    Start listening for Enter key in a separate thread.
-    Sends a test donation when Enter is pressed.
+    Start listening for /test command in a separate thread.
+    Formats:
+      /test name                  -> name, text="test", amount=100 UAH
+      /test name text             -> name, text, amount=100 UAH
+      /test name text amount      -> name, text, amount UAH
+    Examples:
+      /test Alice
+      /test Bob "YouTube link"
+      /test Charlie "https://youtu.be/xyz" 50
     """
     loop = asyncio.get_event_loop()
 
     def listen() -> None:
-        print("[Input] Ready for test donations - press Enter to send")
+        print("[Input] Ready for test donations")
+        print("[Input] /test name                    (name, text='test', 100 UAH)")
+        print("[Input] /test name text               (name, text, 100 UAH)")
+        print("[Input] /test name text amount        (name, text, amount UAH)")
+        print("[Input] Example: /test Alice \"YouTube link\" 50")
         while True:
             try:
-                input()  # Block until Enter is pressed
-                asyncio.run_coroutine_threadsafe(
-                    notification_service.test_donation(),
-                    loop
-                )
-                print("[Input] Test donation sent")
+                user_input = input().strip()
+
+                if not user_input:
+                    continue
+
+                if user_input.startswith("/test"):
+                    # Parse /test command with flexible arguments
+                    parts = user_input.split(maxsplit=1)
+                    if len(parts) < 2:
+                        print("[Input] Error: /test requires at least a name")
+                        continue
+
+                    # Remove /test and get remaining arguments
+                    remaining = parts[1].strip()
+
+                    # Split by spaces, but respect quoted strings
+                    import shlex
+                    try:
+                        args = shlex.split(remaining)
+                    except ValueError:
+                        print("[Input] Error: invalid quotes in command")
+                        continue
+
+                    # Parse arguments with defaults
+                    if len(args) < 1:
+                        print("[Input] Error: /test requires at least a name")
+                        continue
+
+                    donor_name = args[0]
+                    text = args[1] if len(args) > 1 else "test"
+                    amount_uah = 100  # Default 100 UAH
+
+                    # Try to parse amount if present
+                    if len(args) > 2:
+                        try:
+                            amount_uah = float(args[2])
+                        except ValueError:
+                            print(f"[Input] Error: invalid amount '{args[2]}'. Expected number.")
+                            continue
+
+                    amount_kop = int(amount_uah * 100)
+
+                    asyncio.run_coroutine_threadsafe(
+                        notification_service.test_donation(
+                            amount=amount_kop,
+                            donor_name=donor_name,
+                            comment=text
+                        ),
+                        loop
+                    )
+                    print(f"[Input] Test donation: {donor_name} - {amount_uah:.2f} UAH - {text}")
+                else:
+                    print("[Input] Unknown command. Use: /test name [text] [amount]")
+
             except Exception as e:
                 print(f"[Input] Error: {e}")
 
@@ -154,15 +215,23 @@ async def main():
     monobank_client = MonobankClient(config)
     poller = DonationPoller(monobank_client, notification_service, config)
 
-    # Initialize YouTube player
-    youtube_player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
+    # Initialize YouTube player with shared queue manager
+    queue_manager = QueueManager(queue_file=str(PROJECT_ROOT / "youtube_queue.json"))
+    youtube_player = YouTubePlayer(queue_file=str(PROJECT_ROOT / "youtube_queue.json"), queue_manager=queue_manager)
 
     print("[Main] Monobank integration enabled")
     print("[Main] YouTube player initialized")
 
     # Callback for new donations - add YouTube tracks to player
     async def on_donation(donation) -> None:
-        """Handle new donation - check for YouTube link."""
+        """Handle new donation - check for YouTube link and minimum amount."""
+        min_amount = config.get_min_donation_for_music()
+
+        # Check if donation meets minimum amount for music
+        if donation.amount_uah < min_amount:
+            print(f"[Main] Donation {donation.amount_uah} UAH is below minimum {min_amount} UAH for music")
+            return
+
         if donation.comment:
             await youtube_player.add_from_comment(donation.comment)
 
