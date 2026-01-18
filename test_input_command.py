@@ -55,55 +55,69 @@ def test_test_donation_with_parameters():
 
 
 def test_command_parsing():
-    """Test parsing of /test command format."""
-    print("\n[TEST] /test command parsing")
+    """Test parsing of /test command format with flexible arguments."""
+    print("\n[TEST] /test command parsing (flexible format)")
+
+    import shlex
 
     test_cases = [
         # (input, expected_result)
-        ("/test Alice text 50", {"donor": "Alice", "text": "text", "amount": 50.0, "valid": True}),
-        ("/test Bob https://youtu.be/xyz 100", {"donor": "Bob", "text": "https://youtu.be/xyz", "amount": 100.0, "valid": True}),
-        ("/test Charlie comment 25.5", {"donor": "Charlie", "text": "comment", "amount": 25.5, "valid": True}),
-        ("/test", {"valid": False, "reason": "too few args"}),
-        ("/test OnlyName", {"valid": False, "reason": "too few args"}),
-        ("/test OnlyName NoAmount", {"valid": False, "reason": "missing amount"}),
+        ("/test Alice", {"donor": "Alice", "text": "test", "amount": 100.0, "valid": True}),
+        ("/test Bob text", {"donor": "Bob", "text": "text", "amount": 100.0, "valid": True}),
+        ("/test Charlie comment 50", {"donor": "Charlie", "text": "comment", "amount": 50.0, "valid": True}),
+        ("/test Alice https://youtu.be/xyz 100", {"donor": "Alice", "text": "https://youtu.be/xyz", "amount": 100.0, "valid": True}),
+        ("/test Bob \"YouTube link\" 75", {"donor": "Bob", "text": "YouTube link", "amount": 75.0, "valid": True}),
+        ("/test Charlie text 25.5", {"donor": "Charlie", "text": "text", "amount": 25.5, "valid": True}),
+        ("/test", {"valid": False, "reason": "no args"}),
     ]
 
     for user_input, expected in test_cases:
-        # Parse command
-        parts = user_input.split(maxsplit=4)
-
         result = {"valid": False}
 
         if user_input.startswith("/test"):
-            if len(parts) >= 4:
-                try:
-                    donor_name = parts[1]
-                    text = parts[2]
-                    amount_uah = float(parts[3])
-                    amount_kop = int(amount_uah * 100)
+            parts = user_input.split(maxsplit=1)
+            if len(parts) >= 2:
+                remaining = parts[1].strip()
 
-                    result = {
-                        "valid": True,
-                        "donor": donor_name,
-                        "text": text,
-                        "amount": amount_uah,
-                        "amount_kop": amount_kop,
-                    }
+                try:
+                    args = shlex.split(remaining)
+                    if len(args) >= 1:
+                        donor_name = args[0]
+                        text = args[1] if len(args) > 1 else "test"
+                        amount_uah = 100.0  # Default 100 UAH
+
+                        if len(args) > 2:
+                            try:
+                                amount_uah = float(args[2])
+                            except ValueError:
+                                result = {"valid": False, "reason": "invalid amount"}
+                                continue
+
+                        amount_kop = int(amount_uah * 100)
+
+                        result = {
+                            "valid": True,
+                            "donor": donor_name,
+                            "text": text,
+                            "amount": amount_uah,
+                            "amount_kop": amount_kop,
+                        }
+                    else:
+                        result = {"valid": False, "reason": "no args"}
                 except ValueError:
-                    result = {"valid": False, "reason": "invalid amount"}
+                    result = {"valid": False, "reason": "invalid quotes"}
             else:
-                result = {"valid": False, "reason": "too few args"}
+                result = {"valid": False, "reason": "no args"}
 
         # Check result
-        assert result["valid"] == expected["valid"], \
-            f"Input '{user_input}': expected valid={expected['valid']}, got {result['valid']}"
-
-        if result["valid"]:
-            assert result["donor"] == expected["donor"]
-            assert result["text"] == expected["text"]
-            assert result["amount"] == expected["amount"]
-            print(f"  [OK] Parsed: /test {result['donor']} {result['text']} {result['amount']} UAH")
+        if expected["valid"]:
+            assert result["valid"], f"Input '{user_input}': should be valid"
+            assert result["donor"] == expected["donor"], f"Donor name mismatch"
+            assert result["text"] == expected["text"], f"Text mismatch"
+            assert abs(result["amount"] - expected["amount"]) < 0.01, f"Amount mismatch"
+            print(f"  [OK] /test {result['donor']} {result['text']} {result['amount']} UAH")
         else:
+            assert not result["valid"], f"Input '{user_input}': should be invalid"
             print(f"  [OK] Rejected: {user_input} ({result.get('reason', 'unknown')})")
 
     print("[PASS] test_command_parsing")
@@ -184,11 +198,54 @@ def test_donation_object_creation():
     print("[PASS] test_donation_object_creation")
 
 
+def test_optional_parameters():
+    """Test that /test handles optional parameters with defaults."""
+    print("\n[TEST] Optional parameters with defaults")
+
+    import shlex
+
+    # Test case 1: Only name - defaults to "test", 100 UAH
+    args = shlex.split("Alice")
+    donor = args[0]
+    text = args[1] if len(args) > 1 else "test"
+    amount = float(args[2]) if len(args) > 2 else 100.0
+
+    assert donor == "Alice"
+    assert text == "test"
+    assert amount == 100.0
+    print(f"  [OK] /test Alice -> {donor}, {text}, {amount} UAH")
+
+    # Test case 2: Name + text - defaults to 100 UAH
+    args = shlex.split("Bob \"YouTube link\"")
+    donor = args[0]
+    text = args[1] if len(args) > 1 else "test"
+    amount = float(args[2]) if len(args) > 2 else 100.0
+
+    assert donor == "Bob"
+    assert text == "YouTube link"
+    assert amount == 100.0
+    print(f"  [OK] /test Bob \"YouTube link\" -> {donor}, {text}, {amount} UAH")
+
+    # Test case 3: Name + text + amount
+    args = shlex.split("Charlie \"my comment\" 35")
+    donor = args[0]
+    text = args[1] if len(args) > 1 else "test"
+    amount = float(args[2]) if len(args) > 2 else 100.0
+
+    assert donor == "Charlie"
+    assert text == "my comment"
+    assert amount == 35.0
+    print(f"  [OK] /test Charlie \"my comment\" 35 -> {donor}, {text}, {amount} UAH")
+
+    print("[PASS] test_optional_parameters")
+
+
 if __name__ == "__main__":
     test_test_donation_with_parameters()
     test_command_parsing()
     test_amount_conversion()
     test_donation_object_creation()
+    test_optional_parameters()
 
     print("\n" + "=" * 60)
     print("All /test command tests passed!")

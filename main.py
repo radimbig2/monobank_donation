@@ -114,15 +114,23 @@ async def select_jar_interactive(config: Config) -> bool:
 def start_input_listener(notification_service: "NotificationService") -> None:
     """
     Start listening for /test command in a separate thread.
-    Format: /test donor_name text amount_in_uah
-    Example: /test "John Doe" "YouTube link" 50
+    Formats:
+      /test name                  -> name, text="тест", amount=100 UAH
+      /test name text             -> name, text, amount=100 UAH
+      /test name text amount      -> name, text, amount UAH
+    Examples:
+      /test Alice
+      /test Bob "YouTube link"
+      /test Charlie "https://youtu.be/xyz" 50
     """
     loop = asyncio.get_event_loop()
 
     def listen() -> None:
         print("[Input] Ready for test donations")
-        print("[Input] Format: /test donor_name text amount_in_uah")
-        print("[Input] Example: /test \"John Doe\" \"https://youtu.be/xyz\" 50")
+        print("[Input] /test name                    (name, text='test', 100 UAH)")
+        print("[Input] /test name text               (name, text, 100 UAH)")
+        print("[Input] /test name text amount        (name, text, amount UAH)")
+        print("[Input] Example: /test Alice \"YouTube link\" 50")
         while True:
             try:
                 user_input = input().strip()
@@ -131,31 +139,53 @@ def start_input_listener(notification_service: "NotificationService") -> None:
                     continue
 
                 if user_input.startswith("/test"):
-                    # Parse /test command
-                    parts = user_input.split(maxsplit=4)
-                    if len(parts) < 4:
-                        print("[Input] Error: format is /test donor_name text amount_in_uah")
+                    # Parse /test command with flexible arguments
+                    parts = user_input.split(maxsplit=1)
+                    if len(parts) < 2:
+                        print("[Input] Error: /test requires at least a name")
                         continue
 
-                    try:
-                        donor_name = parts[1]
-                        text = parts[2]
-                        amount_uah = float(parts[3])
-                        amount_kop = int(amount_uah * 100)
+                    # Remove /test and get remaining arguments
+                    remaining = parts[1].strip()
 
-                        asyncio.run_coroutine_threadsafe(
-                            notification_service.test_donation(
-                                amount=amount_kop,
-                                donor_name=donor_name,
-                                comment=text
-                            ),
-                            loop
-                        )
-                        print(f"[Input] Test donation sent: {donor_name} - {amount_uah:.2f} UAH - {text}")
-                    except ValueError as e:
-                        print(f"[Input] Error: invalid amount. Expected number, got: {parts[3]}")
+                    # Split by spaces, but respect quoted strings
+                    import shlex
+                    try:
+                        args = shlex.split(remaining)
+                    except ValueError:
+                        print("[Input] Error: invalid quotes in command")
+                        continue
+
+                    # Parse arguments with defaults
+                    if len(args) < 1:
+                        print("[Input] Error: /test requires at least a name")
+                        continue
+
+                    donor_name = args[0]
+                    text = args[1] if len(args) > 1 else "test"
+                    amount_uah = 100  # Default 100 UAH
+
+                    # Try to parse amount if present
+                    if len(args) > 2:
+                        try:
+                            amount_uah = float(args[2])
+                        except ValueError:
+                            print(f"[Input] Error: invalid amount '{args[2]}'. Expected number.")
+                            continue
+
+                    amount_kop = int(amount_uah * 100)
+
+                    asyncio.run_coroutine_threadsafe(
+                        notification_service.test_donation(
+                            amount=amount_kop,
+                            donor_name=donor_name,
+                            comment=text
+                        ),
+                        loop
+                    )
+                    print(f"[Input] Test donation: {donor_name} - {amount_uah:.2f} UAH - {text}")
                 else:
-                    print("[Input] Unknown command. Use: /test donor_name text amount_in_uah")
+                    print("[Input] Unknown command. Use: /test name [text] [amount]")
 
             except Exception as e:
                 print(f"[Input] Error: {e}")
